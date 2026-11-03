@@ -32,6 +32,22 @@ Usuarios creados automáticamente:
 | `ntroncos` (Nelson Raúl Troncos Pintado) | `upn2026` | ADMIN |
 | `jmorales` (Juan Carlos Morales Rojas) | `upn2026` | ADMIN |
 
+## Respaldo de la base de datos
+
+`database/upn_inventario.sql` contiene la estructura y los datos de la base `upn_inventario` (usuarios, equipos, solicitantes y préstamos).
+
+- **Restaurar** (crea la base si no existe y reemplaza sus tablas):
+  ```
+  C:\xampp\mysql\bin\mysql.exe -uroot < database\upn_inventario.sql
+  ```
+  También se puede importar desde phpMyAdmin → **Importar**.
+- **Generar un nuevo respaldo:**
+  ```
+  C:\xampp\mysql\bin\mysqldump.exe -uroot --databases upn_inventario --default-character-set=utf8mb4 --skip-dump-date --add-drop-table --routines > database\upn_inventario.sql
+  ```
+
+Si no se restaura el respaldo, el backend crea las tablas y los datos iniciales automáticamente al arrancar.
+
 ## Pantallas
 
 | Pantalla | URL |
