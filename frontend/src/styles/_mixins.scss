@@ -1,0 +1,30 @@
+@use 'variables' as *;
+
+// Tarjeta con sombra y bordes redondeados
+@mixin tarjeta($padding: 1.25rem) {
+  background: #fff;
+  border-radius: $border-radius;
+  box-shadow: $sombra-suave;
+  padding: $padding;
+}
+
+// Centrado con Flexbox
+@mixin flex-centro($direccion: row) {
+  display: flex;
+  flex-direction: $direccion;
+  align-items: center;
+  justify-content: center;
+}
+
+// Grid responsivo de columnas automáticas
+@mixin grid-auto($min: 220px, $gap: 1rem) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax($min, 1fr));
+  gap: $gap;
+}
+
+@mixin movil {
+  @media (max-width: 767.98px) {
+    @content;
+  }
+}

@@ -1,0 +1,153 @@
+<div class="encabezado-pagina">
+  <h1><i class="bi bi-laptop"></i> Inventario de equipos</h1>
+  <div class="filtros">
+    <select class="form-select" [ngModel]="filtroCategoria()" (ngModelChange)="filtroCategoria.set($event)">
+      <option value="">Todas las categorías</option>
+      @for (c of categorias; track c) {
+        <option [value]="c">{{ c }}</option>
+      }
+    </select>
+    <input
+      class="form-control"
+      type="search"
+      placeholder="Buscar por código, nombre o marca"
+      [ngModel]="busqueda()"
+      (ngModelChange)="busqueda.set($event)"
+    />
+  </div>
+</div>
+
+@if (mensaje(); as m) {
+  <div class="alert" [ngClass]="'alert-' + m.tipo" role="alert">{{ m.texto }}</div>
+}
+
+<div [class.layout-crud]="auth.esAdmin()">
+  <div class="tarjeta p-0 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Código</th>
+            <th>Equipo</th>
+            <th>Categoría</th>
+            <th class="text-center">Disponibles / Total</th>
+            <th>Estado</th>
+            @if (auth.esAdmin()) {
+              <th></th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of filtrados(); track e.id) {
+            <tr [class.table-active]="editandoId() === e.id">
+              <td><code>{{ e.codigo }}</code></td>
+              <td>
+                <div class="fw-semibold">{{ e.nombre }}</div>
+                @if (e.marca || e.modelo) {
+                  <small class="text-secondary">{{ e.marca }} {{ e.modelo }}</small>
+                }
+              </td>
+              <td><span class="badge text-bg-light">{{ e.categoria }}</span></td>
+              <td class="text-center">
+                <span [appDisponibilidad]="e.cantidadDisponible">{{ e.cantidadDisponible }}</span>
+                <span class="text-secondary"> / {{ e.cantidadTotal }}</span>
+              </td>
+              <td><span class="badge" [ngClass]="claseEstado(e.estado)">{{ e.estado | etiqueta }}</span></td>
+              @if (auth.esAdmin()) {
+                <td>
+                  <div class="acciones">
+                    <button class="btn btn-sm btn-outline-primary" title="Editar" (click)="editar(e)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" title="Eliminar" (click)="eliminar(e)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="text-center text-secondary py-4">No se encontraron equipos</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Solo el administrador puede registrar o editar equipos -->
+  @if (auth.esAdmin()) {
+    <form class="tarjeta" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+      <h2 class="h5 mb-3">{{ editandoId() ? 'Editar equipo #' + editandoId() : 'Nuevo equipo' }}</h2>
+
+      <div class="fila-2">
+        <div class="mb-3">
+          <label class="form-label">Código *</label>
+          <input class="form-control text-uppercase" placeholder="LAP-003" formControlName="codigo" [class.is-invalid]="invalido('codigo')" />
+          <div class="invalid-feedback">{{ erroresServidor()['codigo'] || 'Obligatorio, máx. 20 caracteres' }}</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Categoría *</label>
+          <select class="form-select" formControlName="categoria" [class.is-invalid]="invalido('categoria')">
+            <option value="" disabled>Seleccione</option>
+            @for (c of categorias; track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+          <div class="invalid-feedback">{{ erroresServidor()['categoria'] || 'Seleccione una categoría' }}</div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Nombre *</label>
+        <input class="form-control" formControlName="nombre" [class.is-invalid]="invalido('nombre')" />
+        <div class="invalid-feedback">{{ erroresServidor()['nombre'] || 'Entre 2 y 100 caracteres' }}</div>
+      </div>
+
+      <div class="fila-2">
+        <div class="mb-3">
+          <label class="form-label">Marca</label>
+          <input class="form-control" formControlName="marca" [class.is-invalid]="invalido('marca')" />
+          <div class="invalid-feedback">{{ erroresServidor()['marca'] || 'Máx. 50 caracteres' }}</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Modelo</label>
+          <input class="form-control" formControlName="modelo" [class.is-invalid]="invalido('modelo')" />
+          <div class="invalid-feedback">{{ erroresServidor()['modelo'] || 'Máx. 50 caracteres' }}</div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Descripción</label>
+        <textarea class="form-control" rows="2" formControlName="descripcion" [class.is-invalid]="invalido('descripcion')"></textarea>
+        <div class="invalid-feedback">{{ erroresServidor()['descripcion'] || 'Máx. 255 caracteres' }}</div>
+      </div>
+
+      <div class="fila-2">
+        <div class="mb-3">
+          <label class="form-label">Cantidad total *</label>
+          <input class="form-control" type="number" min="1" step="1" formControlName="cantidadTotal" [class.is-invalid]="invalido('cantidadTotal')" />
+          <div class="invalid-feedback">{{ erroresServidor()['cantidadTotal'] || 'Entre 1 y 1000' }}</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Estado *</label>
+          <select class="form-select" formControlName="estado">
+            @for (s of estados; track s) {
+              <option [value]="s">{{ s | etiqueta }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1" type="submit" [disabled]="guardando()">
+          <i class="bi bi-save"></i> {{ editandoId() ? 'Actualizar' : 'Registrar' }}
+        </button>
+        @if (editandoId()) {
+          <button class="btn btn-outline-secondary" type="button" (click)="cancelar()">Cancelar</button>
+        }
+      </div>
+    </form>
+  }
+</div>

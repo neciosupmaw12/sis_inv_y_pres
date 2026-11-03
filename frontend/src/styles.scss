@@ -1,0 +1,62 @@
+@use 'styles/mixins' as m;
+
+// Variables propias primero para personalizar Bootstrap
+@import 'styles/variables';
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: $body-bg;
+}
+
+// Utilidades propias reutilizadas por las páginas
+.tarjeta {
+  @include m.tarjeta;
+}
+
+.encabezado-pagina {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+// Layout de listado + formulario con CSS Grid
+.layout-crud {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.25rem;
+  align-items: start;
+
+  @include m.movil {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table {
+  th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: $secondary;
+  }
+}
+
+.acciones {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}

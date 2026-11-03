@@ -1,0 +1,45 @@
+@use 'sass:color';
+@use '../../../styles/variables' as v;
+@use '../../../styles/mixins' as m;
+
+.pantalla {
+  @include m.flex-centro;
+  min-height: 100vh;
+  padding: 1rem;
+  background: linear-gradient(135deg, v.$primary, color.scale(v.$primary, $lightness: -45%));
+}
+
+.panel {
+  @include m.tarjeta(2rem);
+  width: 100%;
+  max-width: 400px;
+}
+
+.marca {
+  @include m.flex-centro(column);
+  margin-bottom: 1.5rem;
+  text-align: center;
+
+  i {
+    font-size: 2.5rem;
+    color: v.$primary;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0.25rem 0 0;
+  }
+
+  p {
+    color: v.$secondary;
+    margin: 0;
+  }
+}
+
+.demo {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  color: v.$secondary;
+  text-align: center;
+}

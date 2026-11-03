@@ -1,0 +1,66 @@
+@use '../../../styles/variables' as v;
+@use '../../../styles/mixins' as m;
+
+// Solicitante y fecha en una fila de CSS Grid
+.cabecera {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  @include m.movil {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lineas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+// Cada línea de equipo es una fila de CSS Grid
+.linea {
+  display: grid;
+  grid-template-columns: 1fr 110px 110px 40px;
+  gap: 0.5rem;
+  align-items: center;
+
+  &.encabezado {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: v.$secondary;
+  }
+
+  @include m.movil {
+    grid-template-columns: 1fr 80px;
+
+    &.encabezado,
+    > span {
+      display: none;
+    }
+  }
+}
+
+.pie {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #dde1ea;
+
+  .total {
+    font-size: 1.1rem;
+
+    strong {
+      color: v.$primary;
+    }
+  }
+}
+
+.nav-pills .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}

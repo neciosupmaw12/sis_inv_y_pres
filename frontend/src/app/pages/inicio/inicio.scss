@@ -1,0 +1,86 @@
+@use 'sass:map';
+@use '../../../styles/variables' as v;
+@use '../../../styles/mixins' as m;
+
+// Mapa de colores por indicador → se genera una clase por cada uno
+$colores: (
+  equipos: v.$primary,
+  disponibles: v.$success,
+  activos: v.$info,
+  vencidos: v.$danger,
+);
+
+.indicadores {
+  @include m.grid-auto(220px, 1rem);
+  margin-bottom: 1.25rem;
+}
+
+.indicador {
+  @include m.tarjeta;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: inherit;
+  text-decoration: none;
+  border-left: 4px solid map.get($colores, equipos);
+  transition: transform 0.15s;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  i {
+    font-size: 2rem;
+  }
+
+  span,
+  small {
+    display: block;
+    font-size: 0.8rem;
+    color: v.$secondary;
+  }
+
+  strong {
+    font-size: 1.6rem;
+    line-height: 1.2;
+  }
+
+  @each $nombre, $color in $colores {
+    &.#{$nombre} {
+      border-left-color: $color;
+
+      i {
+        color: $color;
+      }
+    }
+  }
+}
+
+.paneles {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.25rem;
+
+  @include m.movil {
+    grid-template-columns: 1fr;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+}
+
+.fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #eef0f5;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}

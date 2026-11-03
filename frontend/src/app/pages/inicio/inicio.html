@@ -1,0 +1,79 @@
+<div class="encabezado-pagina">
+  <div>
+    <h1>¡Hola, {{ auth.usuario()?.nombre }}!</h1>
+    <small class="text-secondary">{{ fecha | date: 'fullDate' }}</small>
+  </div>
+  <a class="btn btn-primary" routerLink="/prestamos"><i class="bi bi-plus-lg"></i> Nuevo préstamo</a>
+</div>
+
+@if (cargando()) {
+  <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+} @else {
+  <!-- Indicadores: CSS Grid -->
+  <section class="indicadores">
+    <a class="indicador equipos" routerLink="/equipos">
+      <i class="bi bi-laptop"></i>
+      <div>
+        <span>Unidades en inventario</span>
+        <strong>{{ unidadesTotales() }}</strong>
+        <small>{{ equipos().length }} tipos de equipo</small>
+      </div>
+    </a>
+    <a class="indicador disponibles" routerLink="/equipos">
+      <i class="bi bi-check2-circle"></i>
+      <div>
+        <span>Disponibles para préstamo</span>
+        <strong>{{ unidadesDisponibles() }}</strong>
+        <small>{{ solicitantes().length }} solicitantes registrados</small>
+      </div>
+    </a>
+    <a class="indicador activos" routerLink="/prestamos">
+      <i class="bi bi-arrow-left-right"></i>
+      <div>
+        <span>Préstamos activos</span>
+        <strong>{{ activos() }}</strong>
+        <small>{{ prestamos().length }} en el historial</small>
+      </div>
+    </a>
+    <a class="indicador vencidos" routerLink="/prestamos">
+      <i class="bi bi-exclamation-triangle"></i>
+      <div>
+        <span>Préstamos vencidos</span>
+        <strong>{{ vencidos() }}</strong>
+        <small>{{ vencidos() > 0 ? 'Requieren seguimiento' : 'Todo al día' }}</small>
+      </div>
+    </a>
+  </section>
+
+  <section class="paneles">
+    <div class="tarjeta">
+      <h2>Préstamos por devolver</h2>
+      @for (p of porDevolver(); track p.id) {
+        <div class="fila">
+          <div>
+            <div class="fw-semibold">{{ p.solicitante }}</div>
+            <small class="text-secondary">#{{ p.id }} · {{ p.totalEquipos }} equipo(s) · {{ p.tipoSolicitante | etiqueta }}</small>
+          </div>
+          <div class="text-end">
+            <span class="badge" [ngClass]="p.estado === 'VENCIDO' ? 'text-bg-danger' : 'text-bg-primary'">{{ p.estado | etiqueta }}</span>
+            <div><small class="text-secondary">hasta {{ p.fechaDevolucionPrevista | date: 'mediumDate' }}</small></div>
+          </div>
+        </div>
+      } @empty {
+        <p class="text-secondary mb-0"><i class="bi bi-check-circle text-success"></i> No hay préstamos pendientes de devolución.</p>
+      }
+    </div>
+
+    <div class="tarjeta">
+      <h2>Poca disponibilidad <span class="badge bg-danger">{{ pocaDisponibilidad().length }}</span></h2>
+      @for (e of pocaDisponibilidad(); track e.id) {
+        <div class="fila">
+          <span>{{ e.nombre }}</span>
+          <span [appDisponibilidad]="e.cantidadDisponible">{{ e.cantidadDisponible }} / {{ e.cantidadTotal }}</span>
+        </div>
+      } @empty {
+        <p class="text-secondary mb-0"><i class="bi bi-check-circle text-success"></i> Todos los equipos tienen unidades disponibles.</p>
+      }
+    </div>
+  </section>
+}

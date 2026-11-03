@@ -1,0 +1,55 @@
+<nav class="navbar navbar-expand-md navbar-dark barra">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/inicio">
+      <i class="bi bi-pc-display"></i> UPN Inventario TI-Gr06
+    </a>
+
+    <button
+      class="navbar-toggler"
+      type="button"
+      [attr.aria-expanded]="abierto()"
+      aria-label="Abrir menú"
+      (click)="abierto.set(!abierto())"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" [class.show]="abierto()">
+      <ul class="navbar-nav me-auto">
+        @for (enlace of enlaces; track enlace.ruta) {
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              [routerLink]="enlace.ruta"
+              routerLinkActive="active"
+              (click)="abierto.set(false)"
+            >
+              <i class="bi" [class]="enlace.icono"></i> {{ enlace.texto }}
+            </a>
+          </li>
+        }
+        @if (auth.esAdmin()) {
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/usuarios" routerLinkActive="active" (click)="abierto.set(false)">
+              <i class="bi bi-person-gear"></i> Usuarios
+            </a>
+          </li>
+        }
+      </ul>
+
+      @if (auth.usuario(); as usuario) {
+        <div class="usuario">
+          <div class="text-end lh-sm">
+            <div class="fw-semibold">{{ usuario.nombre }}</div>
+            <span class="badge" [class.bg-warning]="auth.esAdmin()" [class.bg-info]="!auth.esAdmin()">
+              {{ usuario.rol }}
+            </span>
+          </div>
+          <button class="btn btn-sm btn-outline-light" (click)="auth.logout()" title="Cerrar sesión">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</nav>

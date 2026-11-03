@@ -1,0 +1,13 @@
+# Dependencias y compilados
+node_modules/
+target/
+dist/
+.angular/
+
+# Editores y sistema
+.vscode/
+.idea/
+*.log
+Thumbs.db
+.DS_Store
+~$*.docx
