@@ -3,7 +3,10 @@ import { DatePipe, NgClass } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
-import { Api, leerError } from '../../core/services/api';
+import { EquipoService } from '../../core/services/equipo.service';
+import { SolicitanteService } from '../../core/services/solicitante.service';
+import { PrestamoService } from '../../core/services/prestamo.service';
+import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
 import { Equipo, EstadoPrestamo, Prestamo, PrestamoRequest, Solicitante } from '../../core/models';
 import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
@@ -24,7 +27,9 @@ function fechaLocal(dias = 0): string {
   styleUrl: './prestamos.scss',
 })
 export class Prestamos implements OnInit {
-  private api = inject(Api);
+  private prestamoService = inject(PrestamoService);
+  private solicitanteService = inject(SolicitanteService);
+  private equipoService = inject(EquipoService);
   private fb = inject(FormBuilder);
   protected readonly auth = inject(Auth);
 
@@ -63,9 +68,9 @@ export class Prestamos implements OnInit {
 
   cargar(): void {
     forkJoin({
-      prestamos: this.api.index<Prestamo>('prestamos'),
-      solicitantes: this.api.index<Solicitante>('solicitantes'),
-      equipos: this.api.index<Equipo>('equipos'),
+      prestamos: this.prestamoService.listar(),
+      solicitantes: this.solicitanteService.listar(),
+      equipos: this.equipoService.listar(),
     }).subscribe((r) => {
       this.prestamos.set(r.prestamos);
       this.solicitantes.set(r.solicitantes);
@@ -151,8 +156,8 @@ export class Prestamos implements OnInit {
     const id = this.editandoId();
     this.guardando.set(true);
     const peticion = id
-      ? this.api.update<Prestamo>('prestamos', id, body)
-      : this.api.create<Prestamo>('prestamos', body);
+      ? this.prestamoService.actualizar(id, body)
+      : this.prestamoService.crear(body);
     peticion.subscribe({
       next: (p) => {
         this.notificar('success', `Préstamo #${p.id} ${id ? 'actualizado' : 'registrado'}: ${p.totalEquipos} equipo(s) para ${p.solicitante}`);
@@ -171,7 +176,7 @@ export class Prestamos implements OnInit {
 
   devolver(p: Prestamo): void {
     if (!confirm(`¿Registrar la devolución del préstamo #${p.id} de ${p.solicitante}?`)) return;
-    this.api.accion<Prestamo>('prestamos', p.id, 'devolucion').subscribe({
+    this.prestamoService.devolver(p.id).subscribe({
       next: () => {
         this.notificar('success', `Devolución del préstamo #${p.id} registrada; los equipos vuelven al inventario`);
         this.cerrar();
@@ -183,7 +188,7 @@ export class Prestamos implements OnInit {
 
   anular(p: Prestamo): void {
     if (!confirm(`¿Anular el préstamo #${p.id}? Se eliminará del historial.`)) return;
-    this.api.delete('prestamos', p.id).subscribe({
+    this.prestamoService.eliminar(p.id).subscribe({
       next: () => {
         this.notificar('success', `Préstamo #${p.id} anulado`);
         this.cerrar();

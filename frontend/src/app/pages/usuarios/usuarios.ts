@@ -2,7 +2,8 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Api, leerError } from '../../core/services/api';
+import { RegistroUsuario, UsuarioService } from '../../core/services/usuario.service';
+import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
 import { UsuarioSistema } from '../../core/models';
 
@@ -13,7 +14,7 @@ import { UsuarioSistema } from '../../core/models';
   styleUrl: './usuarios.scss',
 })
 export class Usuarios implements OnInit {
-  private api = inject(Api);
+  private usuarioService = inject(UsuarioService);
   protected readonly auth = inject(Auth);
 
   protected readonly usuarios = signal<UsuarioSistema[]>([]);
@@ -33,7 +34,7 @@ export class Usuarios implements OnInit {
   }
 
   cargar(): void {
-    this.api.index<UsuarioSistema>('usuarios').subscribe((data) => this.usuarios.set(data));
+    this.usuarioService.listar().subscribe((data) => this.usuarios.set(data));
   }
 
   guardar(): void {
@@ -42,7 +43,7 @@ export class Usuarios implements OnInit {
       return;
     }
     this.guardando.set(true);
-    this.api.create<UsuarioSistema>('usuarios', this.form.getRawValue()).subscribe({
+    this.usuarioService.crear(this.form.getRawValue() as RegistroUsuario).subscribe({
       next: (u) => {
         this.notificar('success', `Usuario "${u.username}" registrado`);
         this.erroresServidor.set({});
@@ -61,7 +62,7 @@ export class Usuarios implements OnInit {
 
   desactivar(u: UsuarioSistema): void {
     if (!confirm(`¿Desactivar al usuario "${u.username}"? Ya no podrá iniciar sesión.`)) return;
-    this.api.delete('usuarios', u.id).subscribe({
+    this.usuarioService.desactivar(u.id).subscribe({
       next: () => {
         this.notificar('success', `Usuario "${u.username}" desactivado`);
         this.cargar();

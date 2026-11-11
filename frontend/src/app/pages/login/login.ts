@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Auth } from '../../core/services/auth';
-import { leerError } from '../../core/services/api';
+import { leerError } from '../../core/services/http-error';
 
 @Component({
   selector: 'app-login',

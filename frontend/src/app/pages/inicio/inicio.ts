@@ -2,7 +2,9 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { Api } from '../../core/services/api';
+import { EquipoService } from '../../core/services/equipo.service';
+import { SolicitanteService } from '../../core/services/solicitante.service';
+import { PrestamoService } from '../../core/services/prestamo.service';
 import { Auth } from '../../core/services/auth';
 import { Equipo, Prestamo, Solicitante } from '../../core/models';
 import { Disponibilidad } from '../../shared/disponibilidad';
@@ -15,7 +17,9 @@ import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
   styleUrl: './inicio.scss',
 })
 export class Inicio implements OnInit {
-  private api = inject(Api);
+  private equipoService = inject(EquipoService);
+  private solicitanteService = inject(SolicitanteService);
+  private prestamoService = inject(PrestamoService);
   protected readonly auth = inject(Auth);
 
   protected readonly equipos = signal<Equipo[]>([]);
@@ -47,9 +51,9 @@ export class Inicio implements OnInit {
 
   ngOnInit(): void {
     forkJoin({
-      equipos: this.api.index<Equipo>('equipos'),
-      solicitantes: this.api.index<Solicitante>('solicitantes'),
-      prestamos: this.api.index<Prestamo>('prestamos'),
+      equipos: this.equipoService.listar(),
+      solicitantes: this.solicitanteService.listar(),
+      prestamos: this.prestamoService.listar(),
     }).subscribe({
       next: (r) => {
         this.equipos.set(r.equipos);

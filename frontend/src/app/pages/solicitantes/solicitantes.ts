@@ -2,7 +2,8 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Api, leerError } from '../../core/services/api';
+import { SolicitanteService } from '../../core/services/solicitante.service';
+import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
 import { Solicitante, TipoSolicitante } from '../../core/models';
 import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
@@ -14,7 +15,7 @@ import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
   styleUrl: './solicitantes.scss',
 })
 export class Solicitantes implements OnInit {
-  private api = inject(Api);
+  private solicitanteService = inject(SolicitanteService);
   protected readonly auth = inject(Auth);
 
   protected readonly tipos: TipoSolicitante[] = ['ESTUDIANTE', 'DOCENTE', 'ADMINISTRATIVO'];
@@ -48,7 +49,7 @@ export class Solicitantes implements OnInit {
   }
 
   cargar(): void {
-    this.api.index<Solicitante>('solicitantes').subscribe((data) => this.solicitantes.set(data));
+    this.solicitanteService.listar().subscribe((data) => this.solicitantes.set(data));
   }
 
   editar(s: Solicitante): void {
@@ -71,8 +72,8 @@ export class Solicitantes implements OnInit {
     this.guardando.set(true);
     const id = this.editandoId();
     const peticion = id
-      ? this.api.update<Solicitante>('solicitantes', id, this.form.value)
-      : this.api.create<Solicitante>('solicitantes', this.form.value);
+      ? this.solicitanteService.actualizar(id, this.form.value as Partial<Solicitante>)
+      : this.solicitanteService.crear(this.form.value as Partial<Solicitante>);
 
     peticion.subscribe({
       next: (s) => {
@@ -92,7 +93,7 @@ export class Solicitantes implements OnInit {
 
   eliminar(s: Solicitante): void {
     if (!confirm(`¿Eliminar al solicitante ${s.nombres} ${s.apellidos}?`)) return;
-    this.api.delete('solicitantes', s.id!).subscribe({
+    this.solicitanteService.eliminar(s.id!).subscribe({
       next: () => {
         this.notificar('success', 'Solicitante eliminado');
         this.cargar();

@@ -2,7 +2,8 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Api, leerError } from '../../core/services/api';
+import { EquipoService } from '../../core/services/equipo.service';
+import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
 import { Equipo, EstadoEquipo } from '../../core/models';
 import { Disponibilidad } from '../../shared/disponibilidad';
@@ -15,7 +16,7 @@ import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
   styleUrl: './equipos.scss',
 })
 export class Equipos implements OnInit {
-  private api = inject(Api);
+  private equipoService = inject(EquipoService);
   protected readonly auth = inject(Auth);
 
   protected readonly categorias = ['Laptops', 'Proyectores', 'Tablets', 'Periféricos', 'Audio', 'Redes', 'Otros'];
@@ -58,7 +59,7 @@ export class Equipos implements OnInit {
   }
 
   cargar(): void {
-    this.api.index<Equipo>('equipos').subscribe((data) => this.equipos.set(data));
+    this.equipoService.listar().subscribe((data) => this.equipos.set(data));
   }
 
   editar(e: Equipo): void {
@@ -86,8 +87,8 @@ export class Equipos implements OnInit {
     this.guardando.set(true);
     const id = this.editandoId();
     const peticion = id
-      ? this.api.update<Equipo>('equipos', id, this.form.value)
-      : this.api.create<Equipo>('equipos', this.form.value);
+      ? this.equipoService.actualizar(id, this.form.value as Partial<Equipo>)
+      : this.equipoService.crear(this.form.value as Partial<Equipo>);
 
     peticion.subscribe({
       next: (e) => {
@@ -107,7 +108,7 @@ export class Equipos implements OnInit {
 
   eliminar(e: Equipo): void {
     if (!confirm(`¿Eliminar el equipo "${e.nombre}"?`)) return;
-    this.api.delete('equipos', e.id!).subscribe({
+    this.equipoService.eliminar(e.id!).subscribe({
       next: () => {
         this.notificar('success', 'Equipo eliminado');
         this.cargar();
