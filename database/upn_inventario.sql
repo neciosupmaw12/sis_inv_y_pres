@@ -40,7 +40,7 @@ CREATE TABLE `detalle_prestamos` (
   KEY `FKee71bmwo65o9j07vp7ak0st9t` (`prestamo_id`),
   CONSTRAINT `FKee71bmwo65o9j07vp7ak0st9t` FOREIGN KEY (`prestamo_id`) REFERENCES `prestamos` (`id`),
   CONSTRAINT `FKjantgosj02i6yuu1sslur7fsf` FOREIGN KEY (`equipo_id`) REFERENCES `equipos` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -49,7 +49,7 @@ CREATE TABLE `detalle_prestamos` (
 
 LOCK TABLES `detalle_prestamos` WRITE;
 /*!40000 ALTER TABLE `detalle_prestamos` DISABLE KEYS */;
-INSERT INTO `detalle_prestamos` VALUES (3,1,2,2),(4,1,6,2),(5,3,8,3),(6,1,2,3),(7,1,8,4);
+INSERT INTO `detalle_prestamos` VALUES (3,1,2,2),(4,1,6,2),(5,3,8,3),(6,1,2,3),(7,1,8,4),(9,1,8,6),(10,2,5,6);
 /*!40000 ALTER TABLE `detalle_prestamos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -73,7 +73,7 @@ CREATE TABLE `equipos` (
   `nombre` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKorutdsib6gh64c5a0997cd1k0` (`codigo`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -82,7 +82,7 @@ CREATE TABLE `equipos` (
 
 LOCK TABLES `equipos` WRITE;
 /*!40000 ALTER TABLE `equipos` DISABLE KEYS */;
-INSERT INTO `equipos` VALUES (1,10,10,'Laptops','LAP-001',NULL,'OPERATIVO','Lenovo','ThinkPad E14 Gen 5','Laptop Lenovo ThinkPad E14'),(2,6,6,'Laptops','LAP-002',NULL,'OPERATIVO','HP','ProBook 450 G10','Laptop HP ProBook 450'),(3,5,5,'Proyectores','PRY-001',NULL,'OPERATIVO','Epson','PowerLite X49','Proyector multimedia Epson'),(4,8,8,'Tablets','TAB-001',NULL,'OPERATIVO','Samsung','Galaxy Tab A9+','Tablet Samsung Galaxy Tab'),(5,12,12,'Periféricos','CAM-001',NULL,'OPERATIVO','Logitech','C920','Cámara web Full HD'),(6,3,3,'Audio','AUD-001',NULL,'OPERATIVO','Shure','BLX24','Kit de micrófono inalámbrico'),(8,9,10,'Laptops','LAP-009','PRUEBA','OPERATIVO','ASUS','ASUS','laptop asus');
+INSERT INTO `equipos` VALUES (1,10,10,'Laptops','LAP-001',NULL,'OPERATIVO','Lenovo','ThinkPad E14 Gen 5','Laptop Lenovo ThinkPad E14'),(2,6,6,'Laptops','LAP-002',NULL,'OPERATIVO','HP','ProBook 450 G10','Laptop HP ProBook 450'),(3,5,5,'Proyectores','PRY-001',NULL,'OPERATIVO','Epson','PowerLite X49','Proyector multimedia Epson'),(4,8,8,'Tablets','TAB-001',NULL,'OPERATIVO','Samsung','Galaxy Tab A9+','Tablet Samsung Galaxy Tab'),(5,10,12,'Periféricos','CAM-001',NULL,'OPERATIVO','Logitech','C920','Cámara web Full HD'),(6,10,10,'Audio','AUD-001',NULL,'OPERATIVO','Shure','BLX24','Kit de micrófono inalámbrico'),(8,8,10,'Laptops','LAP-009','PRUEBA','OPERATIVO','ASUS','ASUS','laptop asus');
 /*!40000 ALTER TABLE `equipos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -107,7 +107,7 @@ CREATE TABLE `prestamos` (
   KEY `FKt4q0sp8cb3gjh0wtkt3fnkbbf` (`solicitante_id`),
   CONSTRAINT `FKeqd1t799y0x5ck9mdeltepy1w` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`),
   CONSTRAINT `FKt4q0sp8cb3gjh0wtkt3fnkbbf` FOREIGN KEY (`solicitante_id`) REFERENCES `solicitantes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -116,7 +116,7 @@ CREATE TABLE `prestamos` (
 
 LOCK TABLES `prestamos` WRITE;
 /*!40000 ALTER TABLE `prestamos` DISABLE KEYS */;
-INSERT INTO `prestamos` VALUES (2,'DEVUELTO','2026-11-09','2026-11-02 16:50:43.000000','2026-11-02 16:09:39.000000','laboratorio 305 , clase redes 2.',1,3),(3,'DEVUELTO','2026-11-09','2026-11-02 17:17:59.000000','2026-11-02 17:17:08.000000',NULL,1,3),(4,'ACTIVO','2026-11-09',NULL,'2026-11-02 17:17:41.000000','LAB 230 - REDES 2',1,1);
+INSERT INTO `prestamos` VALUES (2,'DEVUELTO','2026-11-09','2026-11-02 16:50:43.000000','2026-11-02 16:09:39.000000','laboratorio 305 , clase redes 2.',1,3),(3,'DEVUELTO','2026-11-09','2026-11-02 17:17:59.000000','2026-11-02 17:17:08.000000',NULL,1,3),(4,'ACTIVO','2026-11-09',NULL,'2026-11-02 17:17:41.000000','LAB 230 - REDES 2',1,1),(6,'ACTIVO','2026-11-17',NULL,'2026-11-10 21:59:29.000000','clase de soluciones web',1,4);
 /*!40000 ALTER TABLE `prestamos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -139,7 +139,7 @@ CREATE TABLE `solicitantes` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKoanjqdkgcj1e8jhyaybnu3tgt` (`dni`),
   UNIQUE KEY `UKm4kus3ttihn008k8tpiuqrh5w` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -148,7 +148,7 @@ CREATE TABLE `solicitantes` (
 
 LOCK TABLES `solicitantes` WRITE;
 /*!40000 ALTER TABLE `solicitantes` DISABLE KEYS */;
-INSERT INTO `solicitantes` VALUES (1,'Quispe Torres','Ingeniería de Sistemas','70123456','maria.quispe@upn.pe','María','987654321','ESTUDIANTE'),(2,'Ramírez Soto','Facultad de Ingeniería','45678912','carlos.ramirez@upn.pe','Carlos','912345678','DOCENTE'),(3,'perez','ing sistemas','87654321','n00123546@upn.pe','juan','987654321','ESTUDIANTE');
+INSERT INTO `solicitantes` VALUES (1,'Quispe Torres','Ingeniería de Sistemas','70123456','maria.quispe@upn.pe','María','987654321','ESTUDIANTE'),(2,'Ramírez Soto','Facultad de Ingeniería','45678912','carlos.ramirez@upn.pe','Carlos','912345678','DOCENTE'),(3,'perez','ing sistemas','87654321','n00123546@upn.pe','juan','987654321','ESTUDIANTE'),(4,'perez','ing sistemas','87654320','sistemas@sistemas.com','juancito','987654321','ESTUDIANTE');
 /*!40000 ALTER TABLE `solicitantes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -194,4 +194,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed
+-- Dump completed on 2026-11-17 18:02:42
