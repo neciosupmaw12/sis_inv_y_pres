@@ -1,38 +1,48 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { SolicitanteService } from '../../core/services/solicitante.service';
 import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
-import { Solicitante, TipoSolicitante } from '../../core/models';
+import { FiltrosSolicitante, Solicitante, TipoSolicitante } from '../../core/models';
 import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
+import { Paginacion } from '../../shared/paginacion/paginacion';
+import { ListadoPaginado } from '../../shared/listado-paginado';
 
 @Component({
   selector: 'app-solicitantes',
-  imports: [ReactiveFormsModule, FormsModule, NgClass, EtiquetaPipe],
+  imports: [ReactiveFormsModule, NgClass, EtiquetaPipe, Paginacion],
   templateUrl: './solicitantes.html',
   styleUrl: './solicitantes.scss',
 })
-export class Solicitantes implements OnInit {
+export class Solicitantes {
   private solicitanteService = inject(SolicitanteService);
   protected readonly auth = inject(Auth);
 
   protected readonly tipos: TipoSolicitante[] = ['ESTUDIANTE', 'DOCENTE', 'ADMINISTRATIVO'];
 
-  protected readonly solicitantes = signal<Solicitante[]>([]);
-  protected readonly busqueda = signal('');
+  /** Campos por los que se puede ordenar (coinciden con la lista blanca del backend). */
+  protected readonly ordenes = [
+    { campo: 'apellidos', texto: 'Apellidos' },
+    { campo: 'nombres', texto: 'Nombres' },
+    { campo: 'dni', texto: 'DNI' },
+    { campo: 'tipo', texto: 'Tipo' },
+  ];
+
+  /** Listado paginado desde Spring Boot (GET /api/solicitantes/paginado); su estado vive en la URL. */
+  protected readonly listado = new ListadoPaginado<FiltrosSolicitante, Solicitante>(
+    { page: 0, size: 10, sort: 'apellidos,asc', busqueda: '', tipo: '' },
+    ['tipo'],
+    (consulta) => this.solicitanteService.listarPaginado(consulta),
+  );
+  protected readonly campoOrden = computed(() => this.listado.consulta().sort.split(',')[0]);
+  protected readonly ordenDescendente = computed(() => this.listado.consulta().sort.endsWith(',desc'));
+
   protected readonly editandoId = signal<number | null>(null);
   protected readonly guardando = signal(false);
   protected readonly mensaje = signal<{ tipo: 'success' | 'danger'; texto: string } | null>(null);
   protected readonly erroresServidor = signal<Record<string, string>>({});
-
-  protected readonly filtrados = computed(() => {
-    const q = this.busqueda().trim().toLowerCase();
-    return this.solicitantes().filter(
-      (s) => !q || s.dni.includes(q) || `${s.nombres} ${s.apellidos}`.toLowerCase().includes(q),
-    );
-  });
 
   protected readonly form = inject(FormBuilder).group({
     dni: ['', [Validators.required, Validators.pattern(/^\d{8}$/)]],
@@ -44,12 +54,12 @@ export class Solicitantes implements OnInit {
     telefono: ['', [Validators.pattern(/^9\d{8}$/)]],
   });
 
-  ngOnInit(): void {
-    this.cargar();
+  cambiarCampoOrden(campo: string): void {
+    this.listado.ordenar(`${campo},${this.ordenDescendente() ? 'desc' : 'asc'}`);
   }
 
-  cargar(): void {
-    this.solicitanteService.listar().subscribe((data) => this.solicitantes.set(data));
+  alternarDireccion(): void {
+    this.listado.ordenar(`${this.campoOrden()},${this.ordenDescendente() ? 'asc' : 'desc'}`);
   }
 
   editar(s: Solicitante): void {
@@ -79,7 +89,7 @@ export class Solicitantes implements OnInit {
       next: (s) => {
         this.notificar('success', `Solicitante ${s.nombres} ${s.apellidos} ${id ? 'actualizado' : 'registrado'}`);
         this.cancelar();
-        this.cargar();
+        this.listado.recargar();
         this.guardando.set(false);
       },
       error: (err: HttpErrorResponse) => {
@@ -96,7 +106,8 @@ export class Solicitantes implements OnInit {
     this.solicitanteService.eliminar(s.id!).subscribe({
       next: () => {
         this.notificar('success', 'Solicitante eliminado');
-        this.cargar();
+        if (this.editandoId() === s.id) this.cancelar();
+        this.listado.recargarTrasEliminar();
       },
       error: (err: HttpErrorResponse) => this.notificar('danger', leerError(err).mensaje),
     });

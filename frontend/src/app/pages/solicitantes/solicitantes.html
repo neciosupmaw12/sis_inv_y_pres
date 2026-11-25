@@ -1,12 +1,46 @@
 <div class="encabezado-pagina">
   <h1><i class="bi bi-people"></i> Solicitantes</h1>
-  <input
-    class="form-control buscador"
-    type="search"
-    placeholder="Buscar por DNI o nombre"
-    [ngModel]="busqueda()"
-    (ngModelChange)="busqueda.set($event)"
-  />
+</div>
+
+<!-- Filtros: buscador con debounce, tipo y orden; todo se guarda en la URL -->
+<div class="filtros tarjeta mb-3">
+  <div class="input-group buscador">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input
+      class="form-control"
+      type="search"
+      placeholder="Buscar por DNI, nombres o apellidos"
+      aria-label="Buscar solicitantes"
+      [formControl]="listado.busqueda"
+    />
+  </div>
+  <select
+    class="form-select"
+    aria-label="Filtrar por tipo"
+    (change)="listado.filtrar({ tipo: $any($event.target).value })"
+  >
+    <option value="" [selected]="!listado.consulta().tipo">Todos los tipos</option>
+    @for (t of tipos; track t) {
+      <option [value]="t" [selected]="listado.consulta().tipo === t">{{ t | etiqueta }}</option>
+    }
+  </select>
+  <div class="input-group orden">
+    <span class="input-group-text">Ordenar</span>
+    <select class="form-select" aria-label="Ordenar por" (change)="cambiarCampoOrden($any($event.target).value)">
+      @for (o of ordenes; track o.campo) {
+        <option [value]="o.campo" [selected]="campoOrden() === o.campo">{{ o.texto }}</option>
+      }
+    </select>
+    <button
+      type="button"
+      class="btn btn-outline-secondary"
+      [title]="ordenDescendente() ? 'Descendente (Z→A)' : 'Ascendente (A→Z)'"
+      [attr.aria-label]="ordenDescendente() ? 'Orden descendente' : 'Orden ascendente'"
+      (click)="alternarDireccion()"
+    >
+      <i class="bi" [class]="ordenDescendente() ? 'bi-sort-alpha-down-alt' : 'bi-sort-alpha-down'"></i>
+    </button>
+  </div>
 </div>
 
 @if (mensaje(); as m) {
@@ -14,9 +48,23 @@
 }
 
 <div class="layout-crud">
+  <div>
+  @if (listado.error(); as error) {
+    <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+      <span><i class="bi bi-exclamation-triangle"></i> {{ error }}</span>
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="listado.recargar()">Reintentar</button>
+    </div>
+  }
+  <div class="contenedor-tabla" [class.cargando]="listado.cargando()">
+  @if (listado.cargando()) {
+    <div class="capa-carga" role="status">
+      <div class="spinner-border text-primary"></div>
+      <span class="visually-hidden">Cargando solicitantes…</span>
+    </div>
+  }
   <!-- Tarjetas de solicitantes con CSS Grid -->
   <section class="lista">
-    @for (s of filtrados(); track s.id) {
+    @for (s of listado.pagina()?.content ?? []; track s.id) {
       <article class="solicitante" [class.seleccionado]="editandoId() === s.id">
         <div class="avatar" [ngClass]="'tipo-' + s.tipo.toLowerCase()">{{ iniciales(s) }}</div>
         <div class="datos">
@@ -45,9 +93,32 @@
         </div>
       </article>
     } @empty {
-      <p class="text-secondary">No se encontraron solicitantes.</p>
+      @if (!listado.cargando() && !listado.error()) {
+        <p class="text-secondary sin-resultados">
+          <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+          @if (listado.consulta().busqueda || listado.consulta().tipo) {
+            No hay solicitantes que coincidan con la búsqueda o el filtro.
+            <button type="button" class="btn btn-sm btn-link" (click)="listado.limpiarFiltros()">Limpiar filtros</button>
+          } @else {
+            Todavía no hay solicitantes registrados.
+          }
+        </p>
+      }
     }
   </section>
+  </div>
+  @if (listado.pagina(); as p) {
+    <div class="tarjeta p-0 mt-3">
+      <app-paginacion
+        [pagina]="p"
+        etiqueta="solicitantes"
+        [deshabilitado]="listado.cargando()"
+        (paginaCambio)="listado.irA($event)"
+        (tamanoCambio)="listado.cambiarTamano($event)"
+      />
+    </div>
+  }
+  </div>
 
   <form class="tarjeta" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
     <h2 class="h5 mb-3">{{ editandoId() ? 'Editar solicitante #' + editandoId() : 'Nuevo solicitante' }}</h2>

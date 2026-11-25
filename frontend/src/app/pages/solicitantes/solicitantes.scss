@@ -8,8 +8,18 @@ $colores-tipo: (
   administrativo: v.$info,
 );
 
-.buscador {
-  max-width: 340px;
+.orden {
+  flex: 0 1 260px;
+
+  @include m.movil {
+    flex: 1 1 100%;
+  }
+}
+
+.sin-resultados {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem 0;
 }
 
 .lista {
