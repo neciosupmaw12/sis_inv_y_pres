@@ -49,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/error").permitAll()
+                        // Documentación de la API (Swagger UI y especificación OpenAPI)
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // Gestión de usuarios: solo administrador
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
                         // Equipos (inventario): lectura para ambos roles, escritura solo administrador
