@@ -1,0 +1,71 @@
+<div class="paginacion">
+  <div class="resumen">
+    <span class="text-secondary small">
+      @if (pagina().totalElements > 0) {
+        Mostrando <strong>{{ desde() }}–{{ hasta() }}</strong> de <strong>{{ pagina().totalElements }}</strong> {{ etiqueta() }}
+      } @else {
+        Sin {{ etiqueta() }} para mostrar
+      }
+    </span>
+    <label class="tamano small text-secondary">
+      Por página
+      <select
+        class="form-select form-select-sm"
+        aria-label="Registros por página"
+        [value]="pagina().size"
+        [disabled]="deshabilitado()"
+        (change)="cambiarTamano($any($event.target).value)"
+      >
+        @for (t of tamanos(); track t) {
+          <option [value]="t" [selected]="t === pagina().size">{{ t }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (total() > 1) {
+    <nav aria-label="Navegación entre páginas">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item" [class.disabled]="pagina().first || deshabilitado()">
+          <button type="button" class="page-link" title="Primera página" aria-label="Primera página" (click)="irA(0)">
+            <i class="bi bi-chevron-double-left"></i>
+          </button>
+        </li>
+        <li class="page-item" [class.disabled]="pagina().first || deshabilitado()">
+          <button type="button" class="page-link" title="Página anterior" aria-label="Página anterior" (click)="irA(actual() - 1)">
+            <i class="bi bi-chevron-left"></i><span class="d-none d-md-inline"> Anterior</span>
+          </button>
+        </li>
+
+        @for (item of items(); track $index) {
+          @if (item === '…') {
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          } @else {
+            <li class="page-item" [class.active]="item === actual()" [class.disabled]="deshabilitado() && item !== actual()">
+              <button
+                type="button"
+                class="page-link"
+                [attr.aria-current]="item === actual() ? 'page' : null"
+                [attr.aria-label]="'Página ' + (item + 1)"
+                (click)="irA(item)"
+              >
+                {{ item + 1 }}
+              </button>
+            </li>
+          }
+        }
+
+        <li class="page-item" [class.disabled]="pagina().last || deshabilitado()">
+          <button type="button" class="page-link" title="Página siguiente" aria-label="Página siguiente" (click)="irA(actual() + 1)">
+            <span class="d-none d-md-inline">Siguiente </span><i class="bi bi-chevron-right"></i>
+          </button>
+        </li>
+        <li class="page-item" [class.disabled]="pagina().last || deshabilitado()">
+          <button type="button" class="page-link" title="Última página" aria-label="Última página" (click)="irA(total() - 1)">
+            <i class="bi bi-chevron-double-right"></i>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  }
+</div>

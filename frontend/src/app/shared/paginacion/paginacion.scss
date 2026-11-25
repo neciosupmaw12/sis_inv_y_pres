@@ -1,0 +1,35 @@
+.paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.resumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.tamano {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+
+  .form-select {
+    width: auto;
+  }
+}
+
+.pagination {
+  flex-wrap: wrap;
+
+  .page-link {
+    min-width: 2.1rem;
+    text-align: center;
+  }
+}

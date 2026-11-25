@@ -60,3 +60,63 @@ body {
   gap: 0.35rem;
   justify-content: flex-end;
 }
+
+// ---------- Listados paginados (equipos, préstamos, solicitantes) ----------
+
+// Barra de filtros: buscador + selects; en móvil cada control ocupa el ancho completo
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+
+  .buscador {
+    flex: 1 1 260px;
+  }
+
+  > .form-select {
+    flex: 0 1 210px;
+  }
+
+  @include m.movil {
+    > .form-select,
+    .buscador {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+// Capa semitransparente con spinner mientras llega la página
+.contenedor-tabla {
+  position: relative;
+  min-height: 120px;
+
+  &.cargando .table-responsive,
+  &.cargando .lista {
+    opacity: 0.45;
+    transition: opacity 0.15s;
+  }
+}
+
+.capa-carga {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.badge.stock {
+  min-width: 3.5rem;
+  font-size: 0.8rem;
+}
+
+// En pantallas pequeñas la tabla se desplaza horizontalmente en lugar de apretar las columnas
+@include m.movil {
+  .contenedor-tabla .table {
+    min-width: 640px;
+  }
+}
