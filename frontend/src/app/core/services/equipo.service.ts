@@ -2,7 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Equipo } from '../models';
+import { Equipo, FiltrosEquipo, Pagina } from '../models';
+import { aHttpParams } from './parametros';
 
 /** Administra el inventario de equipos (equivale a "productos"). Consume /api/equipos de Spring Boot. */
 @Injectable({ providedIn: 'root' })
@@ -13,6 +14,16 @@ export class EquipoService {
   /** GET /api/equipos */
   listar(): Observable<Equipo[]> {
     return this.http.get<Equipo[]>(this.url);
+  }
+
+  /** GET /api/equipos/paginado?page=&size=&sort=&busqueda=&estado=&categoria= */
+  listarPaginado(filtros: FiltrosEquipo): Observable<Pagina<Equipo>> {
+    return this.http.get<Pagina<Equipo>>(`${this.url}/paginado`, { params: aHttpParams({ ...filtros }) });
+  }
+
+  /** GET /api/equipos/disponibles (OPERATIVOS con unidades en almacén) */
+  listarDisponibles(): Observable<Equipo[]> {
+    return this.http.get<Equipo[]>(`${this.url}/disponibles`);
   }
 
   /** GET /api/equipos/{id} */

@@ -72,6 +72,63 @@ export interface PrestamoRequest {
   detalles: { equipoId: number; cantidad: number }[];
 }
 
+/**
+ * Página de resultados: coincide con PageResponse<T> del backend
+ * (GET /api/equipos/paginado, /api/prestamos/paginado, /api/solicitantes/paginado).
+ */
+export interface Pagina<T> {
+  content: T[];
+  /** Número de página, empieza en 0. */
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  /** Orden aplicado, por ejemplo "nombre,asc". */
+  sort: string;
+}
+
+/** Parámetros comunes de un listado paginado. */
+export interface ConsultaPaginada {
+  page: number;
+  size: number;
+  /** "campo,asc" o "campo,desc" */
+  sort: string;
+  busqueda?: string;
+}
+
+export interface FiltrosEquipo extends ConsultaPaginada {
+  estado?: EstadoEquipo | '';
+  categoria?: string;
+}
+
+export interface FiltrosPrestamo extends ConsultaPaginada {
+  estado?: EstadoPrestamo | '';
+}
+
+export interface FiltrosSolicitante extends ConsultaPaginada {
+  tipo?: TipoSolicitante | '';
+}
+
+/** GET /api/prestamos/resumen */
+export interface ConteoPrestamos {
+  total: number;
+  activos: number;
+  vencidos: number;
+  devueltos: number;
+}
+
+/** GET /api/panel/resumen */
+export interface PanelResumen {
+  equiposPorEstado: { estado: EstadoEquipo; equipos: number; unidadesTotales: number; unidadesDisponibles: number }[];
+  unidadesTotales: number;
+  unidadesDisponibles: number;
+  unidadesPrestadas: number;
+  prestamos: ConteoPrestamos;
+  topEquipos: { id: number; codigo: string; nombre: string; unidadesPrestadas: number; prestamos: number }[];
+}
+
 /** Cuerpo de error que devuelve el GlobalExceptionHandler del backend. */
 export interface ApiError {
   status: number;

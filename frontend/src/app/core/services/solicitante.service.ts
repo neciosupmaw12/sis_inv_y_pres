@@ -2,7 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Solicitante } from '../models';
+import { FiltrosSolicitante, Pagina, Solicitante } from '../models';
+import { aHttpParams } from './parametros';
 
 /** Administra los solicitantes (equivale a "clientes"). Consume /api/solicitantes de Spring Boot. */
 @Injectable({ providedIn: 'root' })
@@ -13,6 +14,11 @@ export class SolicitanteService {
   /** GET /api/solicitantes */
   listar(): Observable<Solicitante[]> {
     return this.http.get<Solicitante[]>(this.url);
+  }
+
+  /** GET /api/solicitantes/paginado?page=&size=&sort=&busqueda=&tipo= */
+  listarPaginado(filtros: FiltrosSolicitante): Observable<Pagina<Solicitante>> {
+    return this.http.get<Pagina<Solicitante>>(`${this.url}/paginado`, { params: aHttpParams({ ...filtros }) });
   }
 
   /** GET /api/solicitantes/{id} */
