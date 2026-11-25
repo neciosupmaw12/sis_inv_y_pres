@@ -1,47 +1,40 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { EquipoService } from '../../core/services/equipo.service';
 import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
-import { Equipo, EstadoEquipo } from '../../core/models';
-import { Disponibilidad } from '../../shared/disponibilidad';
+import { Equipo, EstadoEquipo, FiltrosEquipo } from '../../core/models';
 import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
+import { Paginacion } from '../../shared/paginacion/paginacion';
+import { CabeceraOrden } from '../../shared/cabecera-orden';
+import { ListadoPaginado } from '../../shared/listado-paginado';
 
 @Component({
   selector: 'app-equipos',
-  imports: [ReactiveFormsModule, FormsModule, NgClass, Disponibilidad, EtiquetaPipe],
+  imports: [ReactiveFormsModule, NgClass, EtiquetaPipe, Paginacion, CabeceraOrden],
   templateUrl: './equipos.html',
   styleUrl: './equipos.scss',
 })
-export class Equipos implements OnInit {
+export class Equipos {
   private equipoService = inject(EquipoService);
   protected readonly auth = inject(Auth);
 
   protected readonly categorias = ['Laptops', 'Proyectores', 'Tablets', 'Periféricos', 'Audio', 'Redes', 'Otros'];
   protected readonly estados: EstadoEquipo[] = ['OPERATIVO', 'EN_MANTENIMIENTO', 'DE_BAJA'];
 
-  protected readonly equipos = signal<Equipo[]>([]);
-  protected readonly busqueda = signal('');
-  protected readonly filtroCategoria = signal('');
+  /** Listado paginado desde Spring Boot (GET /api/equipos/paginado); su estado vive en la URL. */
+  protected readonly listado = new ListadoPaginado<FiltrosEquipo, Equipo>(
+    { page: 0, size: 10, sort: 'nombre,asc', busqueda: '', estado: '', categoria: '' },
+    ['estado', 'categoria'],
+    (consulta) => this.equipoService.listarPaginado(consulta),
+  );
+
   protected readonly editandoId = signal<number | null>(null);
   protected readonly guardando = signal(false);
   protected readonly mensaje = signal<{ tipo: 'success' | 'danger'; texto: string } | null>(null);
   protected readonly erroresServidor = signal<Record<string, string>>({});
-
-  protected readonly filtrados = computed(() => {
-    const q = this.busqueda().trim().toLowerCase();
-    const cat = this.filtroCategoria();
-    return this.equipos().filter(
-      (e) =>
-        (!cat || e.categoria === cat) &&
-        (!q ||
-          e.nombre.toLowerCase().includes(q) ||
-          e.codigo.toLowerCase().includes(q) ||
-          (e.marca ?? '').toLowerCase().includes(q)),
-    );
-  });
 
   protected readonly form = inject(FormBuilder).group({
     codigo: ['', [Validators.required, Validators.maxLength(20)]],
@@ -54,12 +47,9 @@ export class Equipos implements OnInit {
     estado: ['OPERATIVO' as EstadoEquipo, Validators.required],
   });
 
-  ngOnInit(): void {
-    this.cargar();
-  }
-
-  cargar(): void {
-    this.equipoService.listar().subscribe((data) => this.equipos.set(data));
+  hayFiltros(): boolean {
+    const c = this.listado.consulta();
+    return !!(c.busqueda || c.estado || c.categoria);
   }
 
   editar(e: Equipo): void {
@@ -94,7 +84,7 @@ export class Equipos implements OnInit {
       next: (e) => {
         this.notificar('success', `Equipo "${e.nombre}" ${id ? 'actualizado' : 'registrado'} correctamente`);
         this.cancelar();
-        this.cargar();
+        this.listado.recargar(); // se queda en la página actual
         this.guardando.set(false);
       },
       error: (err: HttpErrorResponse) => {
@@ -111,7 +101,8 @@ export class Equipos implements OnInit {
     this.equipoService.eliminar(e.id!).subscribe({
       next: () => {
         this.notificar('success', 'Equipo eliminado');
-        this.cargar();
+        if (this.editandoId() === e.id) this.cancelar();
+        this.listado.recargarTrasEliminar(); // si la página queda vacía, vuelve a la anterior
       },
       error: (err: HttpErrorResponse) => this.notificar('danger', leerError(err).mensaje),
     });
@@ -119,6 +110,19 @@ export class Equipos implements OnInit {
 
   claseEstado(estado: EstadoEquipo): string {
     return { OPERATIVO: 'text-bg-success', EN_MANTENIMIENTO: 'text-bg-warning', DE_BAJA: 'text-bg-secondary' }[estado];
+  }
+
+  /** Badge de stock: rojo si no quedan unidades, amarillo si quedan 2 o menos. */
+  claseStock(e: Equipo): string {
+    if (e.cantidadDisponible === 0) return 'text-bg-danger';
+    if (e.cantidadDisponible <= 2) return 'text-bg-warning';
+    return 'text-bg-light border';
+  }
+
+  textoStock(e: Equipo): string | null {
+    if (e.cantidadDisponible === 0) return 'Agotado';
+    if (e.cantidadDisponible <= 2) return 'Stock bajo';
+    return null;
   }
 
   invalido(campo: keyof typeof this.form.controls): boolean {

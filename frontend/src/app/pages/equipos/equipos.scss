@@ -1,17 +1,3 @@
-.filtros {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-
-  .form-select {
-    width: 200px;
-  }
-
-  .form-control {
-    width: 280px;
-  }
-}
-
 // Dos columnas iguales con CSS Grid dentro del formulario
 .fila-2 {
   display: grid;
