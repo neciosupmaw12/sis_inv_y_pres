@@ -8,8 +8,19 @@ import { SolicitanteService } from '../../core/services/solicitante.service';
 import { PrestamoService } from '../../core/services/prestamo.service';
 import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
-import { Equipo, EstadoPrestamo, Prestamo, PrestamoRequest, Solicitante } from '../../core/models';
+import {
+  ConteoPrestamos,
+  Equipo,
+  EstadoPrestamo,
+  FiltrosPrestamo,
+  Prestamo,
+  PrestamoRequest,
+  Solicitante,
+} from '../../core/models';
 import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
+import { Paginacion } from '../../shared/paginacion/paginacion';
+import { CabeceraOrden } from '../../shared/cabecera-orden';
+import { ListadoPaginado } from '../../shared/listado-paginado';
 
 type Filtro = 'TODOS' | EstadoPrestamo;
 
@@ -22,7 +33,7 @@ function fechaLocal(dias = 0): string {
 
 @Component({
   selector: 'app-prestamos',
-  imports: [ReactiveFormsModule, DatePipe, NgClass, EtiquetaPipe],
+  imports: [ReactiveFormsModule, DatePipe, NgClass, EtiquetaPipe, Paginacion, CabeceraOrden],
   templateUrl: './prestamos.html',
   styleUrl: './prestamos.scss',
 })
@@ -36,19 +47,25 @@ export class Prestamos implements OnInit {
   protected readonly hoy = fechaLocal();
   protected readonly filtros: Filtro[] = ['TODOS', 'ACTIVO', 'VENCIDO', 'DEVUELTO'];
 
-  protected readonly prestamos = signal<Prestamo[]>([]);
+  /** Historial paginado desde Spring Boot (GET /api/prestamos/paginado); filtro, búsqueda y página en la URL. */
+  protected readonly listado = new ListadoPaginado<FiltrosPrestamo, Prestamo>(
+    { page: 0, size: 10, sort: 'fechaPrestamo,desc', busqueda: '', estado: '' },
+    ['estado'],
+    (consulta) => this.prestamoService.listarPaginado(consulta),
+  );
+  /** Cantidad por estado para las pestañas (GET /api/prestamos/resumen). */
+  protected readonly conteo = signal<ConteoPrestamos | null>(null);
+
+  // Listas completas para los selects del formulario
   protected readonly solicitantes = signal<Solicitante[]>([]);
   protected readonly equipos = signal<Equipo[]>([]);
-  protected readonly filtro = signal<Filtro>('TODOS');
   protected readonly detalle = signal<Prestamo | null>(null);
   protected readonly editandoId = signal<number | null>(null);
   protected readonly mostrarFormulario = signal(false);
   protected readonly guardando = signal(false);
   protected readonly mensaje = signal<{ tipo: 'success' | 'danger'; texto: string } | null>(null);
 
-  protected readonly filtrados = computed(() =>
-    this.filtro() === 'TODOS' ? this.prestamos() : this.prestamos().filter((p) => p.estado === this.filtro()),
-  );
+  protected readonly filtroActual = computed<Filtro>(() => this.listado.consulta().estado || 'TODOS');
   protected readonly equiposPrestables = computed(() => this.equipos().filter((e) => e.estado === 'OPERATIVO'));
 
   protected readonly form = this.fb.group({
@@ -63,23 +80,41 @@ export class Prestamos implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargar();
+    this.cargarConteo();
+    this.cargarCatalogos();
   }
 
-  cargar(): void {
+  /** Solicitantes y equipos para el formulario (el stock cambia después de cada préstamo o devolución). */
+  cargarCatalogos(): void {
     forkJoin({
-      prestamos: this.prestamoService.listar(),
       solicitantes: this.solicitanteService.listar(),
       equipos: this.equipoService.listar(),
     }).subscribe((r) => {
-      this.prestamos.set(r.prestamos);
       this.solicitantes.set(r.solicitantes);
       this.equipos.set(r.equipos);
     });
   }
 
-  contar(f: Filtro): number {
-    return f === 'TODOS' ? this.prestamos().length : this.prestamos().filter((p) => p.estado === f).length;
+  cargarConteo(): void {
+    this.prestamoService.resumen().subscribe((c) => this.conteo.set(c));
+  }
+
+  /** Recarga la página actual del historial, los totales de las pestañas y el stock. */
+  private refrescar(trasEliminar = false): void {
+    if (trasEliminar) this.listado.recargarTrasEliminar();
+    else this.listado.recargar();
+    this.cargarConteo();
+    this.cargarCatalogos();
+  }
+
+  filtrar(f: Filtro): void {
+    this.listado.filtrar({ estado: f === 'TODOS' ? '' : f });
+  }
+
+  contar(f: Filtro): number | null {
+    const c = this.conteo();
+    if (!c) return null;
+    return { TODOS: c.total, ACTIVO: c.activos, VENCIDO: c.vencidos, DEVUELTO: c.devueltos }[f];
   }
 
   nuevaLinea(equipoId: number | null = null, cantidad = 1) {
@@ -163,7 +198,7 @@ export class Prestamos implements OnInit {
         this.notificar('success', `Préstamo #${p.id} ${id ? 'actualizado' : 'registrado'}: ${p.totalEquipos} equipo(s) para ${p.solicitante}`);
         this.guardando.set(false);
         this.cerrar();
-        this.cargar();
+        this.refrescar();
       },
       error: (err: HttpErrorResponse) => {
         const e = leerError(err);
@@ -180,7 +215,7 @@ export class Prestamos implements OnInit {
       next: () => {
         this.notificar('success', `Devolución del préstamo #${p.id} registrada; los equipos vuelven al inventario`);
         this.cerrar();
-        this.cargar();
+        this.refrescar();
       },
       error: (err: HttpErrorResponse) => this.notificar('danger', leerError(err).mensaje),
     });
@@ -192,7 +227,7 @@ export class Prestamos implements OnInit {
       next: () => {
         this.notificar('success', `Préstamo #${p.id} anulado`);
         this.cerrar();
-        this.cargar();
+        this.refrescar(true);
       },
       error: (err: HttpErrorResponse) => this.notificar('danger', leerError(err).mensaje),
     });

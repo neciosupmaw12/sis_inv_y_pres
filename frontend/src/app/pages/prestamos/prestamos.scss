@@ -64,3 +64,11 @@
   align-items: center;
   gap: 0.4rem;
 }
+
+.buscador-prestamos {
+  max-width: 300px;
+
+  @include m.movil {
+    max-width: none;
+  }
+}

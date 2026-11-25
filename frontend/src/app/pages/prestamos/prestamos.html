@@ -149,75 +149,131 @@
   </div>
 }
 
-<!-- Filtro por estado -->
-<ul class="nav nav-pills mb-3">
-  @for (f of filtros; track f) {
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="filtro() === f" (click)="filtro.set(f)">
-        {{ f === 'TODOS' ? 'Todos' : (f | etiqueta) }}
-        <span class="badge rounded-pill" [ngClass]="filtro() === f ? 'text-bg-light' : 'text-bg-secondary'">{{ contar(f) }}</span>
-      </button>
-    </li>
-  }
-</ul>
+<!-- Filtro por estado (los totales vienen de una agregación JPQL) y buscador con debounce -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <ul class="nav nav-pills">
+    @for (f of filtros; track f) {
+      <li class="nav-item">
+        <button class="nav-link" [class.active]="filtroActual() === f" (click)="filtrar(f)">
+          {{ f === 'TODOS' ? 'Todos' : (f | etiqueta) }}
+          @if (contar(f) !== null) {
+            <span
+              class="badge rounded-pill"
+              [ngClass]="filtroActual() === f ? 'text-bg-light' : f === 'VENCIDO' ? 'text-bg-danger' : 'text-bg-secondary'"
+              >{{ contar(f) }}</span
+            >
+          }
+        </button>
+      </li>
+    }
+  </ul>
+  <div class="input-group buscador-prestamos">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input
+      class="form-control"
+      type="search"
+      placeholder="Solicitante o DNI"
+      aria-label="Buscar préstamos por solicitante"
+      [formControl]="listado.busqueda"
+    />
+  </div>
+</div>
 
-<!-- Historial -->
+<!-- Historial paginado -->
 <div class="tarjeta p-0 overflow-hidden">
-  <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>#</th>
-          <th>Solicitante</th>
-          <th>Prestado</th>
-          <th>Devolver hasta</th>
-          <th class="text-center">Equipos</th>
-          <th>Estado</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (p of filtrados(); track p.id) {
-          <tr [class.table-danger]="p.estado === 'VENCIDO'" [class.table-active]="detalle()?.id === p.id || editandoId() === p.id">
-            <td>{{ p.id }}</td>
-            <td>
-              <div class="fw-semibold">{{ p.solicitante }}</div>
-              <small class="text-secondary">{{ p.tipoSolicitante | etiqueta }}</small>
-            </td>
-            <td>{{ p.fechaPrestamo | date: 'short' }}</td>
-            <td>{{ p.fechaDevolucionPrevista | date: 'mediumDate' }}</td>
-            <td class="text-center">{{ p.totalEquipos }}</td>
-            <td><span class="badge" [ngClass]="claseEstado(p.estado)">{{ p.estado | etiqueta }}</span></td>
-            <td>
-              <div class="acciones">
-                <button class="btn btn-sm btn-outline-secondary" title="Ver detalle" (click)="ver(p)">
-                  <i class="bi bi-eye"></i>
-                </button>
-                @if (p.estado !== 'DEVUELTO') {
-                  <button class="btn btn-sm btn-outline-success" title="Registrar devolución" (click)="devolver(p)">
-                    <i class="bi bi-box-arrow-in-down"></i>
+  @if (listado.error(); as error) {
+    <div class="alert alert-danger m-3 d-flex justify-content-between align-items-center" role="alert">
+      <span><i class="bi bi-exclamation-triangle"></i> {{ error }}</span>
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="listado.recargar()">Reintentar</button>
+    </div>
+  }
+  <div class="contenedor-tabla" [class.cargando]="listado.cargando()">
+    @if (listado.cargando()) {
+      <div class="capa-carga" role="status">
+        <div class="spinner-border text-primary"></div>
+        <span class="visually-hidden">Cargando préstamos…</span>
+      </div>
+    }
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th appOrden="id" [orden]="listado.consulta().sort" (ordenar)="listado.ordenar($event)">#</th>
+            <th appOrden="solicitante" [orden]="listado.consulta().sort" (ordenar)="listado.ordenar($event)">Solicitante</th>
+            <th appOrden="fechaPrestamo" [orden]="listado.consulta().sort" (ordenar)="listado.ordenar($event)">Prestado</th>
+            <th appOrden="fechaDevolucionPrevista" [orden]="listado.consulta().sort" (ordenar)="listado.ordenar($event)">
+              Devolver hasta
+            </th>
+            <th class="text-center">Equipos</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of listado.pagina()?.content ?? []; track p.id) {
+            <tr [class.table-danger]="p.estado === 'VENCIDO'" [class.table-active]="detalle()?.id === p.id || editandoId() === p.id">
+              <td>{{ p.id }}</td>
+              <td>
+                <div class="fw-semibold">{{ p.solicitante }}</div>
+                <small class="text-secondary">{{ p.tipoSolicitante | etiqueta }}</small>
+              </td>
+              <td>{{ p.fechaPrestamo | date: 'short' }}</td>
+              <td>{{ p.fechaDevolucionPrevista | date: 'mediumDate' }}</td>
+              <td class="text-center">{{ p.totalEquipos }}</td>
+              <td><span class="badge" [ngClass]="claseEstado(p.estado)">{{ p.estado | etiqueta }}</span></td>
+              <td>
+                <div class="acciones">
+                  <button class="btn btn-sm btn-outline-secondary" title="Ver detalle" (click)="ver(p)">
+                    <i class="bi bi-eye"></i>
                   </button>
-                }
-                <!-- Editar y anular: solo administrador -->
-                @if (auth.esAdmin()) {
                   @if (p.estado !== 'DEVUELTO') {
-                    <button class="btn btn-sm btn-outline-primary" title="Editar" (click)="editar(p)">
-                      <i class="bi bi-pencil"></i>
+                    <button class="btn btn-sm btn-outline-success" title="Registrar devolución" (click)="devolver(p)">
+                      <i class="bi bi-box-arrow-in-down"></i>
                     </button>
                   }
-                  <button class="btn btn-sm btn-outline-danger" title="Anular" (click)="anular(p)">
-                    <i class="bi bi-x-circle"></i>
-                  </button>
-                }
-              </div>
-            </td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="7" class="text-center text-secondary py-4">No hay préstamos en esta categoría</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+                  <!-- Editar y anular: solo administrador -->
+                  @if (auth.esAdmin()) {
+                    @if (p.estado !== 'DEVUELTO') {
+                      <button class="btn btn-sm btn-outline-primary" title="Editar" (click)="editar(p)">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    }
+                    <button class="btn btn-sm btn-outline-danger" title="Anular" (click)="anular(p)">
+                      <i class="bi bi-x-circle"></i>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            @if (!listado.cargando() && !listado.error()) {
+              <tr>
+                <td colspan="7" class="text-center text-secondary py-5">
+                  <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                  @if (listado.consulta().busqueda) {
+                    No hay préstamos de solicitantes que coincidan con "{{ listado.consulta().busqueda }}".
+                  } @else {
+                    No hay préstamos en esta categoría.
+                  }
+                </td>
+              </tr>
+            } @else if (listado.cargando()) {
+              <tr><td colspan="7" class="py-5"></td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
+  @if (listado.pagina(); as pg) {
+    <div class="border-top">
+      <app-paginacion
+        [pagina]="pg"
+        etiqueta="préstamos"
+        [deshabilitado]="listado.cargando()"
+        (paginaCambio)="listado.irA($event)"
+        (tamanoCambio)="listado.cambiarTamano($event)"
+      />
+    </div>
+  }
 </div>
