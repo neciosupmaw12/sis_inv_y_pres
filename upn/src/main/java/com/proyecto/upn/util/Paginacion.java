@@ -66,13 +66,15 @@ public final class Paginacion {
         return "id".equals(propiedad) ? resultado : resultado.and(Sort.by(Sort.Direction.ASC, "id"));
     }
 
-    /** Convierte un texto de búsqueda en un patrón LIKE en minúsculas, o null si está vacío. */
+    /**
+     * Convierte un texto de búsqueda en un patrón LIKE en minúsculas ("%lap%"), o null si está vacío.
+     * El valor viaja como parámetro (?) de una consulta preparada, así que no hay riesgo de inyección SQL;
+     * Hibernate ya escapa las barras invertidas para MySQL.
+     */
     public static String patron(String busqueda) {
         if (busqueda == null || busqueda.isBlank()) {
             return null;
         }
-        String limpio = busqueda.trim().toLowerCase()
-                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-        return "%" + limpio + "%";
+        return "%" + busqueda.trim().toLowerCase() + "%";
     }
 }
