@@ -1,18 +1,20 @@
 package com.proyecto.upn.dto;
 
 import com.proyecto.upn.entity.Prestamo;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Schema(description = "Préstamo con su detalle de equipos")
 public record PrestamoResponse(
         Long id,
         LocalDateTime fechaPrestamo,
         LocalDate fechaDevolucionPrevista,
         LocalDateTime fechaDevolucionReal,
         /** ACTIVO, VENCIDO o DEVUELTO */
-        String estado,
+        @Schema(description = "ACTIVO, VENCIDO o DEVUELTO", example = "ACTIVO") String estado,
         Long solicitanteId,
         String solicitante,
         String tipoSolicitante,
