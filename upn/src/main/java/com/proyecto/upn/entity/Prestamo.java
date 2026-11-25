@@ -9,7 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "prestamos")
+@Table(name = "prestamos", indexes = {
+        // Filtro por estado + vencimiento (activos, vencidos, devueltos) y orden por fecha
+        @Index(name = "idx_prestamos_estado_fecha_prevista", columnList = "estado, fechaDevolucionPrevista"),
+        @Index(name = "idx_prestamos_fecha_prestamo", columnList = "fechaPrestamo")
+})
 @Getter
 @Setter
 @NoArgsConstructor

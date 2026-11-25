@@ -5,7 +5,11 @@ import lombok.*;
 
 /** Persona que solicita equipos en préstamo (estudiante, docente o administrativo). */
 @Entity
-@Table(name = "solicitantes")
+@Table(name = "solicitantes", indexes = {
+        // Orden alfabético y búsqueda por apellidos; filtro por tipo (dni y email ya tienen índice UNIQUE)
+        @Index(name = "idx_solicitantes_apellidos_nombres", columnList = "apellidos, nombres"),
+        @Index(name = "idx_solicitantes_tipo", columnList = "tipo")
+})
 @Getter
 @Setter
 @NoArgsConstructor
