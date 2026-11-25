@@ -32,7 +32,7 @@
       <div>
         <span>Préstamos activos</span>
         <strong>{{ activos() }}</strong>
-        <small>{{ prestamos().length }} en el historial</small>
+        <small>{{ panel()?.unidadesPrestadas ?? 0 }} unidades prestadas · {{ panel()?.prestamos?.total ?? 0 }} en el historial</small>
       </div>
     </a>
     <a class="indicador vencidos" routerLink="/prestamos">
@@ -76,4 +76,43 @@
       }
     </div>
   </section>
+
+  <!-- Agregaciones JPQL: top 5 de equipos más prestados y equipos por estado -->
+  @if (panel(); as pn) {
+    <section class="paneles mt-4">
+      <div class="tarjeta">
+        <h2>Equipos más prestados <small class="text-secondary fw-normal">(top 5 del historial)</small></h2>
+        @for (e of pn.topEquipos; track e.id; let i = $index) {
+          <div class="top">
+            <span class="puesto">{{ i + 1 }}</span>
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between">
+                <span><code>{{ e.codigo }}</code> {{ e.nombre }}</span>
+                <strong>{{ e.unidadesPrestadas }} u.</strong>
+              </div>
+              <div class="progress" role="progressbar" [attr.aria-valuenow]="e.unidadesPrestadas" aria-valuemin="0" [attr.aria-valuemax]="maximoPrestado()">
+                <div class="progress-bar" [style.width.%]="(e.unidadesPrestadas / maximoPrestado()) * 100"></div>
+              </div>
+              <small class="text-secondary">{{ e.prestamos }} préstamo(s)</small>
+            </div>
+          </div>
+        } @empty {
+          <p class="text-secondary mb-0">Aún no hay préstamos registrados.</p>
+        }
+      </div>
+
+      <div class="tarjeta">
+        <h2>Equipos por estado</h2>
+        @for (g of pn.equiposPorEstado; track g.estado) {
+          <div class="fila">
+            <span>
+              <span class="badge" [ngClass]="g.estado === 'OPERATIVO' ? 'text-bg-success' : g.estado === 'EN_MANTENIMIENTO' ? 'text-bg-warning' : 'text-bg-secondary'">{{ g.estado | etiqueta }}</span>
+              {{ g.equipos }} tipo(s)
+            </span>
+            <span class="text-secondary">{{ g.unidadesDisponibles }} / {{ g.unidadesTotales }} unidades</span>
+          </div>
+        }
+      </div>
+    </section>
+  }
 }

@@ -6,7 +6,8 @@ import { EquipoService } from '../../core/services/equipo.service';
 import { SolicitanteService } from '../../core/services/solicitante.service';
 import { PrestamoService } from '../../core/services/prestamo.service';
 import { Auth } from '../../core/services/auth';
-import { Equipo, Prestamo, Solicitante } from '../../core/models';
+import { PanelService } from '../../core/services/panel.service';
+import { Equipo, PanelResumen, Prestamo, Solicitante } from '../../core/models';
 import { Disponibilidad } from '../../shared/disponibilidad';
 import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
 
@@ -20,21 +21,24 @@ export class Inicio implements OnInit {
   private equipoService = inject(EquipoService);
   private solicitanteService = inject(SolicitanteService);
   private prestamoService = inject(PrestamoService);
+  private panelService = inject(PanelService);
   protected readonly auth = inject(Auth);
 
   protected readonly equipos = signal<Equipo[]>([]);
   protected readonly solicitantes = signal<Solicitante[]>([]);
   protected readonly prestamos = signal<Prestamo[]>([]);
   protected readonly cargando = signal(true);
+  /** Indicadores calculados en MySQL con JPQL (GROUP BY, SUM, CASE WHEN) en GET /api/panel/resumen. */
+  protected readonly panel = signal<PanelResumen | null>(null);
 
-  protected readonly unidadesTotales = computed(() =>
-    this.equipos().reduce((suma, e) => suma + e.cantidadTotal, 0),
+  protected readonly unidadesTotales = computed(() => this.panel()?.unidadesTotales ?? 0);
+  protected readonly unidadesDisponibles = computed(() => this.panel()?.unidadesDisponibles ?? 0);
+  protected readonly activos = computed(() => this.panel()?.prestamos.activos ?? 0);
+  protected readonly vencidos = computed(() => this.panel()?.prestamos.vencidos ?? 0);
+  /** Para la barra del top: el equipo más prestado ocupa el 100 %. */
+  protected readonly maximoPrestado = computed(() =>
+    Math.max(1, ...(this.panel()?.topEquipos ?? []).map((e) => e.unidadesPrestadas)),
   );
-  protected readonly unidadesDisponibles = computed(() =>
-    this.equipos().reduce((suma, e) => suma + (e.estado === 'OPERATIVO' ? e.cantidadDisponible : 0), 0),
-  );
-  protected readonly activos = computed(() => this.prestamos().filter((p) => p.estado === 'ACTIVO').length);
-  protected readonly vencidos = computed(() => this.prestamos().filter((p) => p.estado === 'VENCIDO').length);
 
   /** Préstamos sin devolver, primero los que vencen antes. */
   protected readonly porDevolver = computed(() =>
@@ -54,8 +58,10 @@ export class Inicio implements OnInit {
       equipos: this.equipoService.listar(),
       solicitantes: this.solicitanteService.listar(),
       prestamos: this.prestamoService.listar(),
+      panel: this.panelService.resumen(),
     }).subscribe({
       next: (r) => {
+        this.panel.set(r.panel);
         this.equipos.set(r.equipos);
         this.solicitantes.set(r.solicitantes);
         this.prestamos.set(r.prestamos);
