@@ -1,12 +1,14 @@
 package com.proyecto.upn.exception;
 
 import com.proyecto.upn.dto.ErrorResponse;
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -42,9 +44,42 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    /** Parámetros de la URL que no cumplen @Min/@Max (por ejemplo, page=-1 o size=500 en los listados paginados). */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorResponse> handleMethodValidation(HandlerMethodValidationException ex, HttpServletRequest req) {
-        return build(HttpStatus.BAD_REQUEST, "Parámetros no válidos", req);
+        Map<String, String> errores = new LinkedHashMap<>();
+        ex.getParameterValidationResults().forEach(r -> {
+            String nombre = r.getMethodParameter().getParameterName();
+            r.getResolvableErrors().forEach(e -> errores.putIfAbsent(nombre != null ? nombre : "parametro",
+                    e.getDefaultMessage()));
+        });
+        ErrorResponse body = new ErrorResponse(LocalDateTime.now(), 400, "Bad Request", "Parámetros no válidos",
+                req.getRequestURI(), errores.isEmpty() ? null : errores);
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    /** Stock insuficiente en un préstamo: 409 con el detalle del equipo; la transacción ya hizo rollback. */
+    @ExceptionHandler(StockInsuficienteException.class)
+    public ResponseEntity<ErrorResponse> handleStock(StockInsuficienteException ex, HttpServletRequest req) {
+        Map<String, String> detalle = new LinkedHashMap<>();
+        detalle.put("equipoId", String.valueOf(ex.getEquipoId()));
+        detalle.put("codigo", ex.getCodigo());
+        detalle.put("disponibles", String.valueOf(ex.getDisponibles()));
+        detalle.put("solicitadas", String.valueOf(ex.getSolicitadas()));
+        ErrorResponse body = new ErrorResponse(LocalDateTime.now(), 409, "Conflict", ex.getMessage(),
+                req.getRequestURI(), detalle);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    /**
+     * Bloqueo optimista (@Version en Equipo): otra transacción modificó el mismo equipo entre la lectura y la
+     * escritura. La operación se revirtió completa; el usuario puede reintentar con los datos actualizados.
+     */
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(Exception ex, HttpServletRequest req) {
+        log.warn("Conflicto de concurrencia en {}: {}", req.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.CONFLICT, "Otro usuario modificó el mismo equipo al mismo tiempo. "
+                + "No se guardó ningún cambio; vuelva a intentarlo.", req);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
