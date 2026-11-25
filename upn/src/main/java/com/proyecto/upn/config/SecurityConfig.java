@@ -65,6 +65,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/prestamos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/prestamos/**").hasRole("ADMIN")
                         .requestMatchers("/api/prestamos/**").hasAnyRole("ADMIN", "ENCARGADO")
+                        // Panel de inicio: ambos roles
+                        .requestMatchers(HttpMethod.GET, "/api/panel/**").hasAnyRole("ADMIN", "ENCARGADO")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> {
