@@ -71,9 +71,14 @@ CREATE TABLE `equipos` (
   `marca` varchar(50) DEFAULT NULL,
   `modelo` varchar(50) DEFAULT NULL,
   `nombre` varchar(100) NOT NULL,
+  `version` bigint(20) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `UKorutdsib6gh64c5a0997cd1k0` (`codigo`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `UKorutdsib6gh64c5a0997cd1k0` (`codigo`),
+  KEY `idx_equipos_nombre` (`nombre`),
+  KEY `idx_equipos_estado_categoria` (`estado`,`categoria`),
+  KEY `idx_equipos_categoria` (`categoria`),
+  KEY `idx_equipos_marca` (`marca`)
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -82,7 +87,7 @@ CREATE TABLE `equipos` (
 
 LOCK TABLES `equipos` WRITE;
 /*!40000 ALTER TABLE `equipos` DISABLE KEYS */;
-INSERT INTO `equipos` VALUES (1,10,10,'Laptops','LAP-001',NULL,'OPERATIVO','Lenovo','ThinkPad E14 Gen 5','Laptop Lenovo ThinkPad E14'),(2,6,6,'Laptops','LAP-002',NULL,'OPERATIVO','HP','ProBook 450 G10','Laptop HP ProBook 450'),(3,5,5,'Proyectores','PRY-001',NULL,'OPERATIVO','Epson','PowerLite X49','Proyector multimedia Epson'),(4,8,8,'Tablets','TAB-001',NULL,'OPERATIVO','Samsung','Galaxy Tab A9+','Tablet Samsung Galaxy Tab'),(5,10,12,'Periféricos','CAM-001',NULL,'OPERATIVO','Logitech','C920','Cámara web Full HD'),(6,10,10,'Audio','AUD-001',NULL,'OPERATIVO','Shure','BLX24','Kit de micrófono inalámbrico'),(8,8,10,'Laptops','LAP-009','PRUEBA','OPERATIVO','ASUS','ASUS','laptop asus');
+INSERT INTO `equipos` VALUES (1,10,10,'Laptops','LAP-001',NULL,'OPERATIVO','Lenovo','ThinkPad E14 Gen 5','Laptop Lenovo ThinkPad E14',0),(2,6,6,'Laptops','LAP-002',NULL,'OPERATIVO','HP','ProBook 450 G10','Laptop HP ProBook 450',0),(3,5,5,'Proyectores','PRY-001',NULL,'OPERATIVO','Epson','PowerLite X49','Proyector multimedia Epson',0),(4,8,8,'Tablets','TAB-001',NULL,'OPERATIVO','Samsung','Galaxy Tab A9+','Tablet Samsung Galaxy Tab',0),(5,10,12,'Periféricos','CAM-001',NULL,'OPERATIVO','Logitech','C920','Cámara web Full HD',0),(6,10,10,'Audio','AUD-001',NULL,'OPERATIVO','Shure','BLX24','Kit de micrófono inalámbrico',0),(8,8,10,'Laptops','LAP-009','PRUEBA','OPERATIVO','ASUS','ASUS','laptop asus',0);
 /*!40000 ALTER TABLE `equipos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -105,6 +110,8 @@ CREATE TABLE `prestamos` (
   PRIMARY KEY (`id`),
   KEY `FKeqd1t799y0x5ck9mdeltepy1w` (`usuario_id`),
   KEY `FKt4q0sp8cb3gjh0wtkt3fnkbbf` (`solicitante_id`),
+  KEY `idx_prestamos_estado_fecha_prevista` (`estado`,`fecha_devolucion_prevista`),
+  KEY `idx_prestamos_fecha_prestamo` (`fecha_prestamo`),
   CONSTRAINT `FKeqd1t799y0x5ck9mdeltepy1w` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`),
   CONSTRAINT `FKt4q0sp8cb3gjh0wtkt3fnkbbf` FOREIGN KEY (`solicitante_id`) REFERENCES `solicitantes` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -138,7 +145,9 @@ CREATE TABLE `solicitantes` (
   `tipo` enum('ADMINISTRATIVO','DOCENTE','ESTUDIANTE') NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKoanjqdkgcj1e8jhyaybnu3tgt` (`dni`),
-  UNIQUE KEY `UKm4kus3ttihn008k8tpiuqrh5w` (`email`)
+  UNIQUE KEY `UKm4kus3ttihn008k8tpiuqrh5w` (`email`),
+  KEY `idx_solicitantes_apellidos_nombres` (`apellidos`,`nombres`),
+  KEY `idx_solicitantes_tipo` (`tipo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -194,4 +203,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-17 18:02:42
+-- Dump completed
