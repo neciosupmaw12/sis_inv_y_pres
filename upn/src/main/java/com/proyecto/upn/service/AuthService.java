@@ -35,7 +35,7 @@ public class AuthService {
         return new AuthResponse(token, "Bearer", usuario.getUsername(), usuario.getNombre(), usuario.getRol().name());
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public UsuarioResponse registrar(RegistroRequest req) {
         if (usuarioRepository.existsByUsername(req.username())) {
             throw new ConflictException("El usuario " + req.username() + " ya existe");
@@ -55,7 +55,7 @@ public class AuthService {
         return usuarioRepository.findAll().stream().map(UsuarioResponse::de).toList();
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void eliminar(Long id, String usernameActual) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario", id));

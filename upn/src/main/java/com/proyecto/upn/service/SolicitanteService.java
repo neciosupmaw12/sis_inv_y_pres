@@ -1,17 +1,24 @@
 package com.proyecto.upn.service;
 
+import com.proyecto.upn.dto.PageResponse;
 import com.proyecto.upn.dto.SolicitanteRequest;
+import com.proyecto.upn.dto.SolicitanteResponse;
 import com.proyecto.upn.entity.Solicitante;
+import com.proyecto.upn.entity.TipoSolicitante;
 import com.proyecto.upn.exception.ConflictException;
 import com.proyecto.upn.exception.ResourceNotFoundException;
 import com.proyecto.upn.repository.PrestamoRepository;
 import com.proyecto.upn.repository.SolicitanteRepository;
+import com.proyecto.upn.util.Paginacion;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -25,13 +32,30 @@ public class SolicitanteService {
         return solicitanteRepository.findAll(Sort.by("apellidos", "nombres"));
     }
 
+    public static final Map<String, String> ORDEN_PERMITIDO = Map.of(
+            "apellidos", "apellidos",
+            "nombres", "nombres",
+            "dni", "dni",
+            "tipo", "tipo",
+            "area", "area");
+    public static final String ORDEN_POR_DEFECTO = "apellidos,asc";
+
+    /** Listado paginado con búsqueda por DNI o nombre y filtro opcional por tipo. */
+    @Transactional(readOnly = true)
+    public PageResponse<SolicitanteResponse> listarPaginado(Integer page, Integer size, String sort, String busqueda,
+                                                            TipoSolicitante tipo) {
+        Pageable pageable = Paginacion.crear(page, size, sort, ORDEN_PERMITIDO, ORDEN_POR_DEFECTO);
+        Page<Solicitante> pagina = solicitanteRepository.buscar(Paginacion.patron(busqueda), tipo, pageable);
+        return PageResponse.of(pagina, SolicitanteResponse::de, Paginacion.normalizarOrden(sort, ORDEN_POR_DEFECTO));
+    }
+
     @Transactional(readOnly = true)
     public Solicitante buscar(Long id) {
         return solicitanteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Solicitante", id));
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Solicitante crear(SolicitanteRequest req) {
         String email = limpiar(req.email());
         if (solicitanteRepository.existsByDni(req.dni())) {
@@ -45,7 +69,7 @@ public class SolicitanteService {
         return solicitanteRepository.save(solicitante);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Solicitante actualizar(Long id, SolicitanteRequest req) {
         Solicitante solicitante = buscar(id);
         String email = limpiar(req.email());
@@ -59,7 +83,7 @@ public class SolicitanteService {
         return solicitanteRepository.save(solicitante);
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void eliminar(Long id) {
         Solicitante solicitante = buscar(id);
         if (prestamoRepository.existsBySolicitanteId(id)) {
