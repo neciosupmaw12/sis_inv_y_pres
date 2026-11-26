@@ -7,52 +7,83 @@
 }
 
 <div class="layout-crud">
-  <div class="tarjeta p-0 overflow-hidden">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Usuario</th>
-            <th>Nombre</th>
-            <th>Rol</th>
-            <th>Estado</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (u of usuarios(); track u.id) {
-            <tr [class.text-secondary]="!u.activo">
-              <td><code>{{ u.username }}</code></td>
-              <td class="fw-semibold">{{ u.nombre }}</td>
-              <td>
-                <span class="badge" [class.bg-warning]="u.rol === 'ADMIN'" [class.bg-info]="u.rol === 'ENCARGADO'">
-                  {{ u.rol }}
-                </span>
-              </td>
-              <td>
-                <span class="badge" [ngClass]="u.activo ? 'text-bg-success' : 'text-bg-secondary'">
-                  {{ u.activo ? 'Activo' : 'Inactivo' }}
-                </span>
-              </td>
-              <td>
-                <div class="acciones">
-                  @if (u.activo && u.username !== auth.usuario()?.username) {
-                    <button class="btn btn-sm btn-outline-danger" title="Desactivar" (click)="desactivar(u)">
-                      <i class="bi bi-person-slash"></i>
-                    </button>
-                  }
-                </div>
-              </td>
+  <div>
+    <!-- Filtro por rol -->
+    <ul class="nav nav-pills mb-3">
+      @for (f of filtrosRol; track f) {
+        <li class="nav-item">
+          <button class="nav-link d-flex align-items-center gap-2" [class.active]="filtroRol() === f" (click)="filtroRol.set(f)">
+            {{ f === 'TODOS' ? 'Todos' : (f | etiqueta) }}
+            <span class="badge rounded-pill" [ngClass]="filtroRol() === f ? 'text-bg-light' : 'text-bg-secondary'">{{ cantidad(f) }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+
+    <div class="tarjeta p-0 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Usuario</th>
+              <th>Nombre</th>
+              <th>Rol</th>
+              <th>Estudiante vinculado</th>
+              <th>Estado</th>
+              <th></th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (u of visibles(); track u.id) {
+              <tr [class.text-secondary]="!u.activo">
+                <td><code>{{ u.username }}</code></td>
+                <td class="fw-semibold">{{ u.nombre }}</td>
+                <td><span class="badge" [ngClass]="claseRol[u.rol]">{{ u.rol | etiqueta }}</span></td>
+                <td>
+                  @if (u.dni) {
+                    <div>DNI {{ u.dni }}</div>
+                    <small class="text-secondary">{{ u.carrera }}</small>
+                  } @else {
+                    <span class="text-secondary">—</span>
+                  }
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="u.activo ? 'text-bg-success' : 'text-bg-secondary'">
+                    {{ u.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="acciones">
+                    @if (u.activo && u.username !== auth.usuario()?.username) {
+                      <button class="btn btn-sm btn-outline-danger" title="Desactivar" (click)="desactivar(u)">
+                        <i class="bi bi-person-slash"></i>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-secondary py-4">No hay usuarios con el rol seleccionado.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <form class="tarjeta" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
     <h2 class="h5 mb-3">Nuevo usuario</h2>
 
+    <div class="mb-3">
+      <label class="form-label">Rol *</label>
+      <select class="form-select" formControlName="rol">
+        <option value="ENCARGADO">Encargado de préstamos</option>
+        <option value="ADMIN">Administrador</option>
+        <option value="ALUMNO">Alumno (estudiante)</option>
+      </select>
+    </div>
     <div class="mb-3">
       <label class="form-label">Usuario *</label>
       <input class="form-control" formControlName="username" autocomplete="off" [class.is-invalid]="invalido('username')" />
@@ -63,20 +94,63 @@
       <input class="form-control" type="password" formControlName="password" autocomplete="new-password" [class.is-invalid]="invalido('password')" />
       <div class="invalid-feedback">{{ erroresServidor()['password'] || 'Mínimo 6 caracteres' }}</div>
     </div>
-    <div class="mb-3">
-      <label class="form-label">Nombre completo *</label>
-      <input class="form-control" formControlName="nombre" [class.is-invalid]="invalido('nombre')" />
-      <div class="invalid-feedback">{{ erroresServidor()['nombre'] || 'Obligatorio' }}</div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Rol *</label>
-      <select class="form-select" formControlName="rol">
-        <option value="ENCARGADO">Encargado de préstamos</option>
-        <option value="ADMIN">Administrador</option>
-      </select>
-    </div>
 
-    <button class="btn btn-primary w-100" type="submit" [disabled]="guardando()">
+    @if (!esAlumno()) {
+      <div class="mb-3">
+        <label class="form-label">Nombre completo *</label>
+        <input class="form-control" formControlName="nombre" [class.is-invalid]="invalido('nombre')" />
+        <div class="invalid-feedback">{{ erroresServidor()['nombre'] || 'Obligatorio' }}</div>
+      </div>
+    } @else {
+      <!-- Datos del estudiante: se crea (o se vincula) su Solicitante de tipo ESTUDIANTE -->
+      <fieldset class="estudiante" formGroupName="alumno">
+        <legend><i class="bi bi-mortarboard"></i> Datos del estudiante</legend>
+
+        <div class="mb-2">
+          <label class="form-label">DNI *</label>
+          <input class="form-control" formControlName="dni" inputmode="numeric" maxlength="8" [class.is-invalid]="invalidoAlumno('dni') || !!avisoDni()" />
+          <div class="invalid-feedback">{{ avisoDni() || errorAlumno('dni', '8 dígitos') }}</div>
+          @if (existente(); as s) {
+            <div class="form-text text-success">
+              <i class="bi bi-link-45deg"></i> Ya existe el estudiante <strong>{{ s.nombres }} {{ s.apellidos }}</strong>:
+              se vinculará a este usuario sin duplicarlo (sus datos no cambian).
+            </div>
+          }
+        </div>
+        <div class="fila-2">
+          <div class="mb-2">
+            <label class="form-label">Nombres *</label>
+            <input class="form-control" formControlName="nombres" [readonly]="!!existente()" [class.is-invalid]="invalidoAlumno('nombres')" />
+            <div class="invalid-feedback">{{ errorAlumno('nombres', 'De 2 a 80 caracteres') }}</div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Apellidos *</label>
+            <input class="form-control" formControlName="apellidos" [readonly]="!!existente()" [class.is-invalid]="invalidoAlumno('apellidos')" />
+            <div class="invalid-feedback">{{ errorAlumno('apellidos', 'De 2 a 80 caracteres') }}</div>
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Correo *</label>
+          <input class="form-control" type="email" formControlName="email" [readonly]="!!existente()" [class.is-invalid]="invalidoAlumno('email')" />
+          <div class="invalid-feedback">{{ errorAlumno('email', 'Correo válido') }}</div>
+        </div>
+        <div class="fila-2">
+          <div class="mb-2">
+            <label class="form-label">Teléfono</label>
+            <input class="form-control" formControlName="telefono" inputmode="numeric" maxlength="9" [readonly]="!!existente()" [class.is-invalid]="invalidoAlumno('telefono')" />
+            <div class="invalid-feedback">{{ errorAlumno('telefono', '9 dígitos, empieza con 9') }}</div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Carrera *</label>
+            <input class="form-control" formControlName="area" [readonly]="!!existente()" [class.is-invalid]="invalidoAlumno('area')" />
+            <div class="invalid-feedback">{{ errorAlumno('area', 'Obligatoria') }}</div>
+          </div>
+        </div>
+        <small class="text-secondary">El usuario y el estudiante se guardan juntos: si algo falla, no se guarda ninguno.</small>
+      </fieldset>
+    }
+
+    <button class="btn btn-primary w-100 mt-3" type="submit" [disabled]="guardando() || !!avisoDni()">
       <i class="bi bi-person-plus"></i> Registrar
     </button>
   </form>
