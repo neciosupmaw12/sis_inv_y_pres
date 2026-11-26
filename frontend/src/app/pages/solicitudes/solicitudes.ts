@@ -1,6 +1,6 @@
 import { Component, HostListener, inject, signal } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PrestamoService } from '../../core/services/prestamo.service';
 import { SolicitudesPendientes } from '../../core/services/solicitudes-pendientes';
@@ -40,10 +40,16 @@ export class Solicitudes {
   // Modal de rechazo
   protected readonly rechazando = signal<Prestamo | null>(null);
   protected readonly errorRechazo = signal<string | null>(null);
-  protected readonly motivo = new FormControl('', {
-    nonNullable: true,
-    validators: [Validators.required, Validators.minLength(5), Validators.maxLength(255)],
+  protected readonly formRechazo = new FormGroup({
+    motivo: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(5), Validators.maxLength(255)],
+    }),
   });
+
+  protected get motivo(): FormControl<string> {
+    return this.formRechazo.controls.motivo;
+  }
 
   /** ¿Hay stock y todos los equipos están operativos? Si no, la aprobación responderá 409/400. */
   alcanza(p: Prestamo): boolean {
@@ -68,7 +74,7 @@ export class Solicitudes {
         const e = leerError(err);
         if (e.status === 409) {
           // Stock insuficiente o modificación simultánea: la transacción hizo ROLLBACK
-          this.notificar('danger', `No se pudo aprobar la solicitud #${p.id}. ${e.mensaje} No se descontó ningún equipo y la solicitud sigue pendiente: puede rechazarla o esperar a que se devuelvan unidades.`);
+          this.notificar('danger', `Solicitud #${p.id}: ${e.mensaje} Sigue pendiente y no se descontó ningún equipo: puede rechazarla o esperar a que se devuelvan unidades.`);
         } else {
           this.notificar('danger', `No se pudo aprobar la solicitud #${p.id}: ${e.mensaje}`);
         }
