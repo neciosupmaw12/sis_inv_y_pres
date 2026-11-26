@@ -50,7 +50,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/error").permitAll()
                         // Documentación de la API (Swagger UI y especificación OpenAPI)
-                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml")
+                                .permitAll()
                         // Las reglas se evalúan en orden: primero las más específicas.
                         // Gestión de usuarios: solo administrador
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")

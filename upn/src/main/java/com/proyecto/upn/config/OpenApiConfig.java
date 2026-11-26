@@ -23,7 +23,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("API de Inventario y Préstamo de Equipos UPN")
-                        .version("1.1.0")
+                        .version("1.2.0")
                         .description("""
                                 API REST del sistema de inventario y préstamo de equipo tecnológico (Grupo 06).
 
@@ -31,6 +31,10 @@ public class OpenApiConfig {
                                 1. Ejecute `POST /api/auth/login` con `{"username":"admin","password":"admin123"}`.
                                 2. Copie el valor de `token` de la respuesta.
                                 3. Pulse **Authorize**, pegue el token (sin la palabra *Bearer*) y confirme.
+
+                                **Roles y usuarios de prueba:** `admin / admin123` (ADMIN), `encargado / encargado123`
+                                (ENCARGADO) y `alumno / alumno123` (ALUMNO). El alumno solicita préstamos que quedan
+                                PENDIENTES hasta que un ADMIN los aprueba (`PUT /api/prestamos/{id}/aprobar`) o rechaza.
 
                                 Los listados paginados usan `page` (desde 0), `size` (1 a 50) y `sort` (`campo,asc|desc`).""")
                         .contact(new Contact().name("Grupo 06 - Universidad Privada del Norte")))

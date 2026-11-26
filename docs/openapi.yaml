@@ -1,0 +1,3378 @@
+openapi: 3.1.0
+info:
+  title: API de Inventario y Préstamo de Equipos UPN
+  description: |-
+    API REST del sistema de inventario y préstamo de equipo tecnológico (Grupo 06).
+
+    **Cómo probar los endpoints protegidos:**
+    1. Ejecute `POST /api/auth/login` con `{"username":"admin","password":"admin123"}`.
+    2. Copie el valor de `token` de la respuesta.
+    3. Pulse **Authorize**, pegue el token (sin la palabra *Bearer*) y confirme.
+
+    **Roles y usuarios de prueba:** `admin / admin123` (ADMIN), `encargado / encargado123`
+    (ENCARGADO) y `alumno / alumno123` (ALUMNO). El alumno solicita préstamos que quedan
+    PENDIENTES hasta que un ADMIN los aprueba (`PUT /api/prestamos/{id}/aprobar`) o rechaza.
+
+    Los listados paginados usan `page` (desde 0), `size` (1 a 50) y `sort` (`campo,asc|desc`).
+  contact:
+    name: Grupo 06 - Universidad Privada del Norte
+  version: 1.2.0
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+security:
+- bearerAuth: []
+tags:
+- name: Equipos
+  description: "Inventario de equipos tecnológicos (equivale a \"productos\"). Consultar:\
+    \ ADMIN y ENCARGADO · Registrar, editar y eliminar: solo ADMIN · ALUMNO: solo\
+    \ /disponibles y /catalogo (equipos OPERATIVOS con stock)"
+- name: Solicitantes
+  description: "Estudiantes, docentes y administrativos que piden equipos (equivale\
+    \ a \"clientes\"). Consultar, registrar y editar: ADMIN y ENCARGADO · Eliminar:\
+    \ solo ADMIN"
+- name: Usuarios
+  description: "Gestión de usuarios del sistema: ADMIN, ENCARGADO y ALUMNO (solo ADMIN)"
+- name: Panel
+  description: Indicadores globales del panel de inicio (ADMIN y ENCARGADO; el alumno
+    usa /api/prestamos/mis-prestamos/resumen)
+- name: Préstamos
+  description: "Préstamos y devoluciones (equivale a \"ventas\"). Consultar, registrar\
+    \ y devolver: ADMIN y ENCARGADO · Editar, anular, aprobar y rechazar: solo ADMIN\
+    \ · ALUMNO: solicitar, ver sus préstamos y cancelar sus solicitudes pendientes"
+- name: Autenticación
+  description: "Inicio de sesión: devuelve el token JWT"
+- name: Perfil
+  description: "Datos del alumno autenticado (solo ALUMNO): ver su perfil y editar\
+    \ correo y teléfono"
+paths:
+  /api/solicitantes/{id}:
+    get:
+      tags:
+      - Solicitantes
+      summary: Obtener un solicitante
+      operationId: show
+      parameters:
+      - name: id
+        in: path
+        description: ID del solicitante
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: Solicitante encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitante"
+        "404":
+          description: El solicitante no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_NO_ENCONTRADO:
+                  summary: Solicitante inexistente
+                  description: SOLICITANTE_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Solicitante con id 999 no encontrado
+                    ruta: /api/solicitantes/999
+                    errores: null
+    put:
+      tags:
+      - Solicitantes
+      summary: Actualizar un solicitante
+      operationId: update
+      parameters:
+      - name: id
+        in: path
+        description: ID del solicitante
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitanteRequest"
+        required: true
+      responses:
+        "200":
+          description: Solicitante actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitante"
+        "400":
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_PUT_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: SOLICITANTE_PUT_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/solicitantes/2
+                    errores:
+                      nombres: Los nombres deben tener entre 2 y 80 caracteres
+        "404":
+          description: El solicitante no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_NO_ENCONTRADO:
+                  summary: Solicitante inexistente
+                  description: SOLICITANTE_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Solicitante con id 999 no encontrado
+                    ruta: /api/solicitantes/999
+                    errores: null
+        "409":
+          description: DNI o email duplicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_PUT_DNI_DUPLICADO:
+                  summary: DNI duplicado
+                  description: SOLICITANTE_PUT_DNI_DUPLICADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe otro solicitante con el DNI 70123456
+                    ruta: /api/solicitantes/2
+                    errores: null
+                SOLICITANTE_PUT_EMAIL_DUPLICADO:
+                  summary: Email duplicado
+                  description: SOLICITANTE_PUT_EMAIL_DUPLICADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe otro solicitante con el email maria.quispe@upn.pe
+                    ruta: /api/solicitantes/2
+                    errores: null
+    delete:
+      tags:
+      - Solicitantes
+      summary: Eliminar un solicitante (ADMIN)
+      operationId: delete
+      parameters:
+      - name: id
+        in: path
+        description: ID del solicitante
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "204":
+          description: Solicitante eliminado
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_SIN_PERMISO:
+                  summary: Usuario ENCARGADO
+                  description: SOLICITANTE_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/solicitantes/3
+        "404":
+          description: El solicitante no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_NO_ENCONTRADO:
+                  summary: Solicitante inexistente
+                  description: SOLICITANTE_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Solicitante con id 999 no encontrado
+                    ruta: /api/solicitantes/999
+                    errores: null
+        "409":
+          description: Tiene préstamos registrados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_CON_PRESTAMOS:
+                  summary: Tiene préstamos registrados
+                  description: SOLICITANTE_CON_PRESTAMOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: No se puede eliminar el solicitante porque tiene préstamos
+                      registrados
+                    ruta: /api/solicitantes/1
+                    errores: null
+  /api/prestamos/{id}:
+    get:
+      tags:
+      - Préstamos
+      summary: Obtener un préstamo con su detalle
+      description: "ADMIN y ENCARGADO ven cualquiera; un ALUMNO solo los suyos (si\
+        \ pide uno ajeno, 403)."
+      operationId: show_1
+      parameters:
+      - name: id
+        in: path
+        description: ID del préstamo
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 2
+      responses:
+        "200":
+          description: Préstamo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "403":
+          description: Un ALUMNO pidió el préstamo de otro solicitante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_AJENO:
+                  summary: Préstamo de otro alumno
+                  description: PRESTAMO_AJENO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/2
+                    errores: null
+        "404":
+          description: El préstamo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_NO_ENCONTRADO:
+                  summary: Préstamo inexistente
+                  description: PRESTAMO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Préstamo con id 999 no encontrado
+                    ruta: /api/prestamos/999
+                    errores: null
+    put:
+      tags:
+      - Préstamos
+      summary: Editar un préstamo activo (ADMIN)
+      description: Repone el stock de los equipos anteriores y descuenta el de los
+        nuevos en la misma transacción.
+      operationId: update_1
+      parameters:
+      - name: id
+        in: path
+        description: ID del préstamo
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrestamoRequest"
+        required: true
+      responses:
+        "200":
+          description: Préstamo actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "400":
+          description: Datos inválidos o el préstamo ya fue devuelto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_PUT_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: PRESTAMO_PUT_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/prestamos/6
+                    errores:
+                      detalles[0].cantidad: La cantidad mínima es 1
+                PRESTAMO_NO_EDITABLE:
+                  summary: Préstamo ya devuelto
+                  description: PRESTAMO_NO_EDITABLE
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Solo se pueden editar préstamos activos
+                    ruta: /api/prestamos/2
+                    errores: null
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_SIN_PERMISO:
+                  summary: Usuario ENCARGADO
+                  description: PRESTAMO_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/6
+        "404":
+          description: El préstamo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_NO_ENCONTRADO:
+                  summary: Préstamo inexistente
+                  description: PRESTAMO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Préstamo con id 999 no encontrado
+                    ruta: /api/prestamos/999
+                    errores: null
+        "409":
+          description: Stock insuficiente (rollback)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_PUT_STOCK_INSUFICIENTE:
+                  summary: Stock insuficiente (rollback)
+                  description: PRESTAMO_PUT_STOCK_INSUFICIENTE
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: "No hay unidades suficientes de 'Proyector multimedia\
+                      \ Epson' (PRY-001). Disponibles: 5, solicitadas: 50. No se registró\
+                      \ el préstamo."
+                    ruta: /api/prestamos/6
+                    errores:
+                      equipoId: "3"
+                      codigo: PRY-001
+                      disponibles: "5"
+                      solicitadas: "50"
+    delete:
+      tags:
+      - Préstamos
+      summary: Anular un préstamo (ADMIN)
+      description: "Si seguía activo, sus equipos vuelven al inventario."
+      operationId: delete_1
+      parameters:
+      - name: id
+        in: path
+        description: ID del préstamo
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 2
+      responses:
+        "204":
+          description: Préstamo anulado
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_SIN_PERMISO:
+                  summary: Usuario ENCARGADO
+                  description: PRESTAMO_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/6
+        "404":
+          description: El préstamo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_NO_ENCONTRADO:
+                  summary: Préstamo inexistente
+                  description: PRESTAMO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Préstamo con id 999 no encontrado
+                    ruta: /api/prestamos/999
+                    errores: null
+  /api/prestamos/{id}/rechazar:
+    put:
+      tags:
+      - Préstamos
+      summary: Rechazar una solicitud (ADMIN)
+      description: "Motivo obligatorio. Pasa a RECHAZADO, guarda quién la rechazó\
+        \ y cuándo; el stock no se toca."
+      operationId: rechazar
+      parameters:
+      - name: id
+        in: path
+        description: ID de la solicitud
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 7
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RechazoRequest"
+        required: true
+      responses:
+        "200":
+          description: Solicitud rechazada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "400":
+          description: Falta el motivo o la solicitud no está PENDIENTE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                RECHAZO_SIN_MOTIVO:
+                  summary: Sin motivo
+                  description: RECHAZO_SIN_MOTIVO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/prestamos/7/rechazar
+                    errores:
+                      motivo: El motivo del rechazo es obligatorio
+                RECHAZAR_NO_PENDIENTE:
+                  summary: Ya fue atendida
+                  description: RECHAZAR_NO_PENDIENTE
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: "Solo se pueden rechazar solicitudes PENDIENTES; la #7\
+                      \ está RECHAZADO"
+                    ruta: /api/prestamos/7/rechazar
+                    errores: null
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                RECHAZAR_SIN_PERMISO:
+                  summary: Usuario ENCARGADO o ALUMNO
+                  description: RECHAZAR_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/7/rechazar
+        "404":
+          description: La solicitud no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                RECHAZAR_NO_ENCONTRADA:
+                  summary: Solicitud inexistente
+                  description: RECHAZAR_NO_ENCONTRADA
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 404
+                    error: Not Found
+                    mensaje: Préstamo con id 999 no encontrado
+                    ruta: /api/prestamos/999/rechazar
+                    errores: null
+  /api/prestamos/{id}/devolucion:
+    put:
+      tags:
+      - Préstamos
+      summary: Registrar la devolución
+      description: Solo préstamos ACTIVOS (o vencidos). Repone el stock de todos los
+        equipos del préstamo en una sola transacción.
+      operationId: devolver
+      parameters:
+      - name: id
+        in: path
+        description: ID del préstamo
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 2
+      responses:
+        "200":
+          description: Devolución registrada y stock repuesto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "400":
+          description: El préstamo ya fue devuelto o no está ACTIVO
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_YA_DEVUELTO:
+                  summary: Ya devuelto
+                  description: PRESTAMO_YA_DEVUELTO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: "El préstamo #2 ya fue devuelto"
+                    ruta: /api/prestamos/2/devolucion
+                    errores: null
+                DEVOLUCION_NO_ACTIVO:
+                  summary: Solicitud pendiente
+                  description: DEVOLUCION_NO_ACTIVO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: "Solo se pueden devolver préstamos activos; el #7 está\
+                      \ PENDIENTE"
+                    ruta: /api/prestamos/7/devolucion
+                    errores: null
+        "404":
+          description: El préstamo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                DEVOLUCION_PRESTAMO_NO_ENCONTRADO:
+                  summary: Préstamo inexistente
+                  description: DEVOLUCION_PRESTAMO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Préstamo con id 999 no encontrado
+                    ruta: /api/prestamos/999/devolucion
+                    errores: null
+        "409":
+          description: Modificación simultánea del mismo equipo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                DEVOLUCION_MODIFICACION_SIMULTANEA:
+                  summary: Bloqueo optimista
+                  description: DEVOLUCION_MODIFICACION_SIMULTANEA
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Otro usuario modificó el mismo equipo al mismo tiempo.
+                      No se guardó ningún cambio; vuelva a intentarlo.
+                    ruta: /api/prestamos/6/devolucion
+                    errores: null
+  /api/prestamos/{id}/cancelar:
+    put:
+      tags:
+      - Préstamos
+      summary: Cancelar mi solicitud (ALUMNO)
+      description: Solo la propia y solo mientras siga PENDIENTE. Pasa a CANCELADO;
+        el stock no se toca.
+      operationId: cancelar
+      parameters:
+      - name: id
+        in: path
+        description: ID de la solicitud
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 7
+      responses:
+        "200":
+          description: Solicitud cancelada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "400":
+          description: La solicitud ya fue atendida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                CANCELAR_NO_PENDIENTE:
+                  summary: Ya no está pendiente
+                  description: CANCELAR_NO_PENDIENTE
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: "Solo se pueden cancelar solicitudes PENDIENTES; la #7\
+                      \ está ACTIVO"
+                    ruta: /api/prestamos/7/cancelar
+                    errores: null
+        "403":
+          description: "La solicitud es de otro alumno, o el rol no es ALUMNO"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                CANCELAR_AJENA:
+                  summary: Solicitud de otro alumno
+                  description: CANCELAR_AJENA
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/2/cancelar
+                    errores: null
+        "404":
+          description: La solicitud no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                CANCELAR_NO_ENCONTRADA:
+                  summary: Solicitud inexistente
+                  description: CANCELAR_NO_ENCONTRADA
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 404
+                    error: Not Found
+                    mensaje: Préstamo con id 999 no encontrado
+                    ruta: /api/prestamos/999/cancelar
+                    errores: null
+  /api/prestamos/{id}/aprobar:
+    put:
+      tags:
+      - Préstamos
+      summary: Aprobar una solicitud (ADMIN)
+      description: "Transacción atómica: vuelve a validar cada equipo, descuenta el\
+        \ stock y pasa la solicitud a ACTIVO. Si un equipo ya no tiene unidades suficientes\
+        \ responde 409 y hace ROLLBACK de todo: no se descuenta nada y la solicitud\
+        \ sigue PENDIENTE."
+      operationId: aprobar
+      parameters:
+      - name: id
+        in: path
+        description: ID de la solicitud
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 7
+      responses:
+        "200":
+          description: "Solicitud aprobada: préstamo ACTIVO y stock descontado"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "400":
+          description: "No está PENDIENTE, la fecha de devolución ya pasó, equipo\
+            \ no OPERATIVO o el alumno tiene vencidos"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                APROBAR_NO_PENDIENTE:
+                  summary: Ya fue atendida
+                  description: APROBAR_NO_PENDIENTE
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: "Solo se pueden aprobar solicitudes PENDIENTES; la #7\
+                      \ está ACTIVO"
+                    ruta: /api/prestamos/7/aprobar
+                    errores: null
+                APROBAR_FECHA_VENCIDA:
+                  summary: Fecha de devolución pasada
+                  description: APROBAR_FECHA_VENCIDA
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: La fecha de devolución prevista (25/11/2026) ya pasó;
+                      rechace la solicitud
+                    ruta: /api/prestamos/7/aprobar
+                    errores: null
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                APROBAR_SIN_PERMISO:
+                  summary: Usuario ENCARGADO o ALUMNO
+                  description: APROBAR_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/7/aprobar
+        "404":
+          description: La solicitud no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                APROBAR_NO_ENCONTRADA:
+                  summary: Solicitud inexistente
+                  description: APROBAR_NO_ENCONTRADA
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 404
+                    error: Not Found
+                    mensaje: Préstamo con id 999 no encontrado
+                    ruta: /api/prestamos/999/aprobar
+                    errores: null
+        "409":
+          description: Stock insuficiente (rollback) o modificación simultánea del
+            mismo equipo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                APROBAR_STOCK_INSUFICIENTE:
+                  summary: Stock insuficiente (rollback)
+                  description: APROBAR_STOCK_INSUFICIENTE
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 409
+                    error: Conflict
+                    mensaje: "No hay unidades suficientes de 'Proyector multimedia\
+                      \ Epson' (PRY-001). Disponibles: 1, solicitadas: 2. No se aprobó\
+                      \ la solicitud."
+                    ruta: /api/prestamos/7/aprobar
+                    errores:
+                      equipoId: "3"
+                      codigo: PRY-001
+                      disponibles: "1"
+                      solicitadas: "2"
+                APROBAR_MODIFICACION_SIMULTANEA:
+                  summary: Bloqueo optimista
+                  description: APROBAR_MODIFICACION_SIMULTANEA
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 409
+                    error: Conflict
+                    mensaje: Otro usuario modificó el mismo equipo al mismo tiempo.
+                      No se guardó ningún cambio; vuelva a intentarlo.
+                    ruta: /api/prestamos/7/aprobar
+                    errores: null
+  /api/perfil:
+    get:
+      tags:
+      - Perfil
+      summary: Ver mi perfil (ALUMNO)
+      operationId: ver
+      responses:
+        "200":
+          description: Perfil del alumno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilResponse"
+        "403":
+          description: El rol no es ALUMNO
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PERFIL_SIN_PERMISO:
+                  summary: Usuario ADMIN o ENCARGADO
+                  description: PERFIL_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/perfil
+    put:
+      tags:
+      - Perfil
+      summary: Editar mi correo y teléfono (ALUMNO)
+      description: "DNI, nombres, apellidos y carrera solo los cambia el personal\
+        \ en Solicitantes."
+      operationId: actualizar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PerfilRequest"
+        required: true
+      responses:
+        "200":
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilResponse"
+        "400":
+          description: Correo o teléfono con formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PERFIL_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: PERFIL_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/perfil
+                    errores:
+                      telefono: El teléfono debe tener 9 dígitos y empezar con 9
+        "409":
+          description: El correo ya es de otro solicitante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PERFIL_EMAIL_DUPLICADO:
+                  summary: Correo duplicado
+                  description: PERFIL_EMAIL_DUPLICADO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe otro solicitante con el email maria.quispe@upn.pe
+                    ruta: /api/perfil
+                    errores: null
+  /api/equipos/{id}:
+    get:
+      tags:
+      - Equipos
+      summary: Obtener un equipo
+      operationId: show_2
+      parameters:
+      - name: id
+        in: path
+        description: ID del equipo
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: Equipo encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipo"
+        "404":
+          description: El equipo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_NO_ENCONTRADO:
+                  summary: Equipo inexistente
+                  description: EQUIPO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Equipo con id 999 no encontrado
+                    ruta: /api/equipos/999
+                    errores: null
+    put:
+      tags:
+      - Equipos
+      summary: Actualizar un equipo (ADMIN)
+      description: "Conserva las unidades prestadas: la cantidad total no puede ser\
+        \ menor que ellas."
+      operationId: update_2
+      parameters:
+      - name: id
+        in: path
+        description: ID del equipo
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipoRequest"
+        required: true
+      responses:
+        "200":
+          description: Equipo actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipo"
+        "400":
+          description: Datos inválidos o cantidad menor a las unidades prestadas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_PUT_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: EQUIPO_PUT_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/equipos/5
+                    errores:
+                      categoria: La categoría es obligatoria
+                EQUIPO_CANTIDAD_MENOR_A_PRESTADAS:
+                  summary: Cantidad menor a las prestadas
+                  description: EQUIPO_CANTIDAD_MENOR_A_PRESTADAS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: La cantidad total no puede ser menor a las 2 unidades
+                      que están prestadas
+                    ruta: /api/equipos/5
+                    errores: null
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_SIN_PERMISO:
+                  summary: Usuario ENCARGADO
+                  description: EQUIPO_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/equipos/5
+        "404":
+          description: El equipo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_NO_ENCONTRADO:
+                  summary: Equipo inexistente
+                  description: EQUIPO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Equipo con id 999 no encontrado
+                    ruta: /api/equipos/999
+                    errores: null
+        "409":
+          description: Código duplicado o modificación simultánea (bloqueo optimista)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_PUT_CODIGO_DUPLICADO:
+                  summary: Código duplicado
+                  description: EQUIPO_PUT_CODIGO_DUPLICADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe otro equipo con el código LAP-001
+                    ruta: /api/equipos/5
+                    errores: null
+                EQUIPO_MODIFICACION_SIMULTANEA:
+                  summary: Bloqueo optimista
+                  description: EQUIPO_MODIFICACION_SIMULTANEA
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Otro usuario modificó el mismo equipo al mismo tiempo.
+                      No se guardó ningún cambio; vuelva a intentarlo.
+                    ruta: /api/equipos/5
+                    errores: null
+    delete:
+      tags:
+      - Equipos
+      summary: Eliminar un equipo (ADMIN)
+      description: "No se elimina si tiene préstamos registrados: en ese caso cambie\
+        \ su estado a DE_BAJA."
+      operationId: delete_2
+      parameters:
+      - name: id
+        in: path
+        description: ID del equipo
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "204":
+          description: Equipo eliminado
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_SIN_PERMISO:
+                  summary: Usuario ENCARGADO
+                  description: EQUIPO_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/equipos/5
+        "404":
+          description: El equipo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_NO_ENCONTRADO:
+                  summary: Equipo inexistente
+                  description: EQUIPO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Equipo con id 999 no encontrado
+                    ruta: /api/equipos/999
+                    errores: null
+        "409":
+          description: El equipo tiene préstamos registrados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_CON_PRESTAMOS:
+                  summary: Tiene préstamos registrados
+                  description: EQUIPO_CON_PRESTAMOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: No se puede eliminar el equipo porque tiene préstamos
+                      registrados; cambie su estado a DE_BAJA
+                    ruta: /api/equipos/5
+                    errores: null
+  /api/usuarios:
+    get:
+      tags:
+      - Usuarios
+      summary: Listar usuarios
+      operationId: index
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsuarioResponse"
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                USUARIOS_SIN_PERMISO:
+                  summary: Usuario ENCARGADO
+                  description: USUARIOS_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/usuarios
+    post:
+      tags:
+      - Usuarios
+      summary: Crear un usuario
+      description: "Para rol ALUMNO envíe además 'alumno' con los datos del estudiante:\
+        \ si ya existe un solicitante ESTUDIANTE con ese DNI se vincula (sin duplicarlo);\
+        \ si no, se crea. Estudiante y usuario se guardan en UNA transacción: ante\
+        \ cualquier 409 no se guarda ninguno de los dos."
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistroRequest"
+        required: true
+      responses:
+        "201":
+          description: Usuario creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioResponse"
+        "400":
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                USUARIO_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: USUARIO_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/usuarios
+                    errores:
+                      nombre: El nombre es obligatorio
+                USUARIO_ALUMNO_SIN_DATOS:
+                  summary: ALUMNO sin datos del estudiante
+                  description: USUARIO_ALUMNO_SIN_DATOS
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/usuarios
+                    errores:
+                      alumno: Los datos del estudiante son obligatorios para el rol
+                        ALUMNO
+                USUARIO_ALUMNO_DATOS_INVALIDOS:
+                  summary: Datos del estudiante inválidos
+                  description: USUARIO_ALUMNO_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/usuarios
+                    errores:
+                      alumno.dni: El DNI debe tener exactamente 8 dígitos
+                      alumno.email: El correo no tiene un formato válido
+        "409":
+          description: "Usuario duplicado, estudiante ya vinculado, DNI que no es\
+            \ de un estudiante o correo duplicado (rollback: no se guarda nada)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                USUARIO_DUPLICADO:
+                  summary: Usuario duplicado
+                  description: USUARIO_DUPLICADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: El usuario admin ya existe
+                    ruta: /api/usuarios
+                    errores: null
+                USUARIO_ALUMNO_YA_VINCULADO:
+                  summary: El estudiante ya tiene usuario
+                  description: USUARIO_ALUMNO_YA_VINCULADO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 409
+                    error: Conflict
+                    mensaje: El estudiante con DNI 71234567 ya tiene el usuario 'alumno'
+                    ruta: /api/usuarios
+                    errores: null
+                USUARIO_ALUMNO_DNI_NO_ESTUDIANTE:
+                  summary: DNI de un docente
+                  description: USUARIO_ALUMNO_DNI_NO_ESTUDIANTE
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 409
+                    error: Conflict
+                    mensaje: El DNI 45678912 pertenece a un solicitante DOCENTE; solo
+                      se puede vincular un ESTUDIANTE
+                    ruta: /api/usuarios
+                    errores: null
+                USUARIO_ALUMNO_EMAIL_DUPLICADO:
+                  summary: Correo de otro solicitante
+                  description: USUARIO_ALUMNO_EMAIL_DUPLICADO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe un solicitante con el email maria.quispe@upn.pe
+                    ruta: /api/usuarios
+                    errores: null
+  /api/solicitantes:
+    get:
+      tags:
+      - Solicitantes
+      summary: Listar todos los solicitantes
+      description: Lista completa sin paginar; la usa el formulario de préstamos.
+      operationId: index_1
+      responses:
+        "200":
+          description: Lista de solicitantes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Solicitante"
+    post:
+      tags:
+      - Solicitantes
+      summary: Registrar un solicitante
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitanteRequest"
+        required: true
+      responses:
+        "201":
+          description: Solicitante creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitante"
+        "400":
+          description: Datos inválidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: SOLICITANTE_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/solicitantes
+                    errores:
+                      dni: El DNI debe tener exactamente 8 dígitos
+                      email: El email no tiene un formato válido
+        "409":
+          description: DNI o email duplicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTE_DNI_DUPLICADO:
+                  summary: DNI duplicado
+                  description: SOLICITANTE_DNI_DUPLICADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe un solicitante con el DNI 70123456
+                    ruta: /api/solicitantes
+                    errores: null
+                SOLICITANTE_EMAIL_DUPLICADO:
+                  summary: Email duplicado
+                  description: SOLICITANTE_EMAIL_DUPLICADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe un solicitante con el email maria.quispe@upn.pe
+                    ruta: /api/solicitantes
+                    errores: null
+  /api/prestamos:
+    get:
+      tags:
+      - Préstamos
+      summary: Listar todos los préstamos
+      description: "Lista completa sin paginar, del más reciente al más antiguo."
+      operationId: index_2
+      responses:
+        "200":
+          description: Lista de préstamos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PrestamoResponse"
+    post:
+      tags:
+      - Préstamos
+      summary: Registrar un préstamo directo (ADMIN y ENCARGADO)
+      description: "Nace ACTIVO. Transacción atómica: descuenta el stock de todos\
+        \ los equipos o de ninguno. Si un equipo no tiene unidades suficientes responde\
+        \ 409 y hace ROLLBACK de todo (no se guarda el préstamo, ni sus detalles,\
+        \ ni se descuenta stock)."
+      operationId: create_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrestamoRequest"
+        required: true
+      responses:
+        "201":
+          description: Préstamo registrado y stock descontado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "400":
+          description: "Datos inválidos, equipo no OPERATIVO o solicitante con pré\
+            stamos vencidos"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: PRESTAMO_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/prestamos
+                    errores:
+                      fechaDevolucionPrevista: La fecha de devolución no puede ser
+                        anterior a hoy
+                      detalles: El préstamo debe incluir al menos un equipo
+                PRESTAMO_EQUIPO_NO_OPERATIVO:
+                  summary: Equipo no operativo
+                  description: PRESTAMO_EQUIPO_NO_OPERATIVO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: El equipo 'Tablet Samsung Galaxy Tab' no está operativo
+                      (EN_MANTENIMIENTO)
+                    ruta: /api/prestamos
+                    errores: null
+                PRESTAMO_SOLICITANTE_CON_VENCIDOS:
+                  summary: Solicitante con vencidos
+                  description: PRESTAMO_SOLICITANTE_CON_VENCIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: El solicitante tiene préstamos vencidos (#4); debe devolverlos
+                      antes de un nuevo préstamo
+                    ruta: /api/prestamos
+                    errores: null
+        "401":
+          description: Sin token o token inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMOS_SIN_TOKEN:
+                  summary: Sin token
+                  description: PRESTAMOS_SIN_TOKEN
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 401
+                    error: Unauthorized
+                    mensaje: Debe iniciar sesión para acceder a este recurso
+                    ruta: /api/prestamos
+        "404":
+          description: El solicitante o un equipo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_SOLICITANTE_NO_ENCONTRADO:
+                  summary: Solicitante inexistente
+                  description: PRESTAMO_SOLICITANTE_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Solicitante con id 999 no encontrado
+                    ruta: /api/prestamos
+                    errores: null
+                PRESTAMO_EQUIPO_NO_ENCONTRADO:
+                  summary: Equipo inexistente
+                  description: PRESTAMO_EQUIPO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Equipo con id 999 no encontrado
+                    ruta: /api/prestamos
+                    errores: null
+        "409":
+          description: Stock insuficiente (rollback) o modificación simultánea del
+            mismo equipo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMO_STOCK_INSUFICIENTE:
+                  summary: Stock insuficiente (rollback)
+                  description: PRESTAMO_STOCK_INSUFICIENTE
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: "No hay unidades suficientes de 'Proyector multimedia\
+                      \ Epson' (PRY-001). Disponibles: 5, solicitadas: 50. No se registró\
+                      \ el préstamo."
+                    ruta: /api/prestamos
+                    errores:
+                      equipoId: "3"
+                      codigo: PRY-001
+                      disponibles: "5"
+                      solicitadas: "50"
+                PRESTAMO_MODIFICACION_SIMULTANEA:
+                  summary: Bloqueo optimista
+                  description: PRESTAMO_MODIFICACION_SIMULTANEA
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Otro usuario modificó el mismo equipo al mismo tiempo.
+                      No se guardó ningún cambio; vuelva a intentarlo.
+                    ruta: /api/prestamos
+                    errores: null
+  /api/prestamos/solicitudes:
+    post:
+      tags:
+      - Préstamos
+      summary: Solicitar un préstamo (ALUMNO)
+      description: "Crea una solicitud PENDIENTE a nombre del alumno del JWT. NO descuenta\
+        \ stock: solo valida que los equipos estén OPERATIVOS, máx. 3 unidades por\
+        \ equipo y 5 por solicitud, máx. 3 solicitudes pendientes y que el alumno\
+        \ no tenga préstamos vencidos. El stock se valida y descuenta cuando el ADMIN\
+        \ la aprueba."
+      operationId: solicitar
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRequest"
+        required: true
+      responses:
+        "201":
+          description: Solicitud registrada en estado PENDIENTE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrestamoResponse"
+        "400":
+          description: "Datos inválidos, límite de cantidad, equipo no OPERATIVO,\
+            \ demasiadas solicitudes pendientes o préstamos vencidos"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITUD_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: SOLICITUD_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/prestamos/solicitudes
+                    errores:
+                      motivo: El motivo es obligatorio
+                      detalles[0].cantidad: Puede pedir como máximo 3 unidades de
+                        cada equipo
+                SOLICITUD_EXCEDE_TOTAL:
+                  summary: Más de 5 unidades
+                  description: SOLICITUD_EXCEDE_TOTAL
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Una solicitud puede incluir como máximo 5 unidades en
+                      total (pidió 6)
+                    ruta: /api/prestamos/solicitudes
+                    errores: null
+                SOLICITUD_MAX_PENDIENTES:
+                  summary: Ya tiene 3 pendientes
+                  description: SOLICITUD_MAX_PENDIENTES
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Ya tiene 3 solicitudes pendientes (máximo 3); espere
+                      a que se atiendan o cancele alguna
+                    ruta: /api/prestamos/solicitudes
+                    errores: null
+                SOLICITUD_EQUIPO_NO_OPERATIVO:
+                  summary: Equipo no operativo
+                  description: SOLICITUD_EQUIPO_NO_OPERATIVO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: El equipo 'Tablet Samsung Galaxy Tab' no está operativo
+                      (EN_MANTENIMIENTO)
+                    ruta: /api/prestamos/solicitudes
+                    errores: null
+                SOLICITUD_CON_VENCIDOS:
+                  summary: Alumno con vencidos
+                  description: SOLICITUD_CON_VENCIDOS
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: El solicitante tiene préstamos vencidos (#4); debe devolverlos
+                      antes de un nuevo préstamo
+                    ruta: /api/prestamos/solicitudes
+                    errores: null
+        "403":
+          description: El rol no es ALUMNO
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITUD_SIN_PERMISO:
+                  summary: Usuario ADMIN o ENCARGADO
+                  description: SOLICITUD_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/solicitudes
+        "404":
+          description: Un equipo no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITUD_EQUIPO_NO_ENCONTRADO:
+                  summary: Equipo inexistente
+                  description: SOLICITUD_EQUIPO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 404
+                    error: Not Found
+                    mensaje: Equipo con id 999 no encontrado
+                    ruta: /api/prestamos/solicitudes
+                    errores: null
+  /api/equipos:
+    get:
+      tags:
+      - Equipos
+      summary: Listar todos los equipos
+      description: "Lista completa sin paginar, ordenada por categoría y nombre. La\
+        \ usa el formulario de préstamos para elegir equipos. Para el listado de la\
+        \ pantalla use /api/equipos/paginado."
+      operationId: index_3
+      responses:
+        "200":
+          description: Lista de equipos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Equipo"
+        "401":
+          description: Sin token o token inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPOS_SIN_TOKEN:
+                  summary: Sin token
+                  description: EQUIPOS_SIN_TOKEN
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 401
+                    error: Unauthorized
+                    mensaje: Debe iniciar sesión para acceder a este recurso
+                    ruta: /api/equipos
+                EQUIPOS_TOKEN_EXPIRADO:
+                  summary: Token expirado
+                  description: EQUIPOS_TOKEN_EXPIRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 401
+                    error: Unauthorized
+                    mensaje: El token ha expirado
+                    ruta: /api/equipos
+    post:
+      tags:
+      - Equipos
+      summary: Registrar un equipo (ADMIN)
+      operationId: create_3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EquipoRequest"
+        required: true
+      responses:
+        "201":
+          description: Equipo creado; el header Location apunta al nuevo recurso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Equipo"
+        "400":
+          description: Datos inválidos (detalle por campo en 'errores')
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_DATOS_INVALIDOS:
+                  summary: Campos inválidos
+                  description: EQUIPO_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/equipos
+                    errores:
+                      codigo: El código es obligatorio
+                      nombre: El nombre debe tener entre 2 y 100 caracteres
+                      cantidadTotal: La cantidad total mínima es 1
+        "403":
+          description: El rol no es ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPOS_SIN_PERMISO:
+                  summary: Usuario ENCARGADO
+                  description: EQUIPOS_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/equipos
+        "409":
+          description: Ya existe un equipo con ese código
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPO_CODIGO_DUPLICADO:
+                  summary: Código duplicado
+                  description: EQUIPO_CODIGO_DUPLICADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 409
+                    error: Conflict
+                    mensaje: Ya existe un equipo con el código LAP-001
+                    ruta: /api/equipos
+                    errores: null
+  /api/auth/login:
+    post:
+      tags:
+      - Autenticación
+      summary: Iniciar sesión
+      description: "Público. Devuelve el JWT que se envía en el header Authorization:\
+        \ Bearer <token>."
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: "Credenciales correctas: token JWT"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Falta el usuario o la contraseña
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                LOGIN_DATOS_INVALIDOS:
+                  summary: Falta la contraseña
+                  description: LOGIN_DATOS_INVALIDOS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Los datos enviados no son válidos
+                    ruta: /api/auth/login
+                    errores:
+                      password: La contraseña es obligatoria
+        "401":
+          description: Usuario o contraseña incorrectos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                LOGIN_CREDENCIALES_INCORRECTAS:
+                  summary: Credenciales incorrectas
+                  description: LOGIN_CREDENCIALES_INCORRECTAS
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 401
+                    error: Unauthorized
+                    mensaje: Usuario o contraseña incorrectos
+                    ruta: /api/auth/login
+                    errores: null
+      security: []
+  /api/solicitantes/paginado:
+    get:
+      tags:
+      - Solicitantes
+      summary: Listar solicitantes paginados
+      description: "Búsqueda JPQL por DNI, nombres o apellidos, con filtro opcional\
+        \ por tipo. Ordenable por: apellidos, nombres, dni, tipo, area."
+      operationId: paginado
+      parameters:
+      - name: page
+        in: query
+        description: "Número de página, empieza en 0"
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+        example: 0
+      - name: size
+        in: query
+        description: Registros por página (máximo 50)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+          maximum: 50
+          minimum: 1
+        example: 10
+      - name: sort
+        in: query
+        description: "Orden: campo,asc|desc"
+        required: false
+        schema:
+          type: string
+          default: "apellidos,asc"
+        example: "apellidos,asc"
+      - name: busqueda
+        in: query
+        description: "DNI, nombres o apellidos"
+        required: false
+        schema:
+          type: string
+        example: quispe
+      - name: tipo
+        in: query
+        description: Filtro por tipo de solicitante
+        required: false
+        schema:
+          type: string
+          enum:
+          - ESTUDIANTE
+          - DOCENTE
+          - ADMINISTRATIVO
+      responses:
+        "200":
+          description: Página de solicitantes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponseSolicitanteResponse"
+        "400":
+          description: Parámetros de paginación u orden no válidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                SOLICITANTES_PAGE_INVALIDO:
+                  summary: page negativo
+                  description: SOLICITANTES_PAGE_INVALIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Parámetros no válidos
+                    ruta: /api/solicitantes/paginado
+                    errores:
+                      page: page debe ser mayor o igual a 0
+                SOLICITANTES_ORDEN_NO_PERMITIDO:
+                  summary: Campo de orden no permitido
+                  description: SOLICITANTES_ORDEN_NO_PERMITIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: "No se puede ordenar por 'email'. Campos permitidos:\
+                      \ apellidos, nombres, dni, tipo, area"
+                    ruta: /api/solicitantes/paginado
+                    errores: null
+  /api/prestamos/vencidos:
+    get:
+      tags:
+      - Préstamos
+      summary: Préstamos vencidos de un solicitante
+      description: "Consulta JPQL: préstamos ACTIVOS del solicitante cuya fecha prevista\
+        \ ya pasó. Es la misma regla que bloquea un nuevo préstamo."
+      operationId: vencidos
+      parameters:
+      - name: solicitanteId
+        in: query
+        description: ID del solicitante
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: Préstamos vencidos (lista vacía si no tiene)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PrestamoResponse"
+        "404":
+          description: El solicitante no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                VENCIDOS_SOLICITANTE_NO_ENCONTRADO:
+                  summary: Solicitante inexistente
+                  description: VENCIDOS_SOLICITANTE_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Solicitante con id 999 no encontrado
+                    ruta: /api/prestamos/vencidos
+                    errores: null
+  /api/prestamos/resumen:
+    get:
+      tags:
+      - Préstamos
+      summary: Contar préstamos por estado
+      description: Agregación JPQL con SUM(CASE WHEN ...) en una sola consulta. Alimenta
+        las pestañas de filtro y el contador de solicitudes pendientes del navbar.
+      operationId: resumen
+      responses:
+        "200":
+          description: Totales por estado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConteoPrestamosDto"
+  /api/prestamos/paginado:
+    get:
+      tags:
+      - Préstamos
+      summary: Listar préstamos paginados
+      description: "Paginación en dos consultas JPQL para evitar el problema N+1 sin\
+        \ paginar en memoria: (1) IDs de la página con LIMIT/OFFSET; (2) esos pré\
+        stamos con JOIN FETCH de solicitante, usuario, detalles y equipos. Ordenable\
+        \ por: id, fechaPrestamo, fechaDevolucionPrevista, estado, solicitante. Con\
+        \ estado=PENDIENTE devuelve las solicitudes de alumnos por atender."
+      operationId: paginado_1
+      parameters:
+      - name: page
+        in: query
+        description: "Número de página, empieza en 0"
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+        example: 0
+      - name: size
+        in: query
+        description: Registros por página (máximo 50)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+          maximum: 50
+          minimum: 1
+        example: 10
+      - name: sort
+        in: query
+        description: "Orden: campo,asc|desc"
+        required: false
+        schema:
+          type: string
+          default: "fechaPrestamo,desc"
+        example: "fechaPrestamo,desc"
+      - name: estado
+        in: query
+        description: Estado (ACTIVO = dentro de plazo) o vacío para todos
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDIENTE
+          - ACTIVO
+          - VENCIDO
+          - DEVUELTO
+          - RECHAZADO
+          - CANCELADO
+      - name: busqueda
+        in: query
+        description: "Nombre, apellido o DNI del solicitante"
+        required: false
+        schema:
+          type: string
+        example: quispe
+      responses:
+        "200":
+          description: Página de préstamos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponsePrestamoResponse"
+        "400":
+          description: "Parámetros de paginación, orden o estado no válidos"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMOS_ESTADO_INVALIDO:
+                  summary: Estado inexistente
+                  description: PRESTAMOS_ESTADO_INVALIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: "Estado no válido: 'XX'. Use PENDIENTE, ACTIVO, VENCIDO,\
+                      \ DEVUELTO, RECHAZADO o CANCELADO"
+                    ruta: /api/prestamos/paginado
+                    errores: null
+                PRESTAMOS_PAGE_INVALIDO:
+                  summary: page negativo
+                  description: PRESTAMOS_PAGE_INVALIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Parámetros no válidos
+                    ruta: /api/prestamos/paginado
+                    errores:
+                      page: page debe ser mayor o igual a 0
+        "403":
+          description: El rol es ALUMNO (debe usar /mis-prestamos)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PRESTAMOS_ALUMNO_SIN_PERMISO:
+                  summary: Usuario ALUMNO
+                  description: PRESTAMOS_ALUMNO_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/paginado
+  /api/prestamos/mis-prestamos:
+    get:
+      tags:
+      - Préstamos
+      summary: Mis préstamos (ALUMNO)
+      description: "Préstamos y solicitudes del alumno autenticado, paginados. El\
+        \ solicitante se toma del JWT (claim solicitanteId), nunca de un parámetro:\
+        \ no hay forma de pedir los de otro alumno."
+      operationId: misPrestamos
+      parameters:
+      - name: page
+        in: query
+        description: "Número de página, empieza en 0"
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+        example: 0
+      - name: size
+        in: query
+        description: Registros por página (máximo 50)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+          maximum: 50
+          minimum: 1
+        example: 10
+      - name: sort
+        in: query
+        description: "Orden: campo,asc|desc"
+        required: false
+        schema:
+          type: string
+          default: "fechaPrestamo,desc"
+        example: "fechaPrestamo,desc"
+      - name: estado
+        in: query
+        description: Estado o vacío para todos
+        required: false
+        schema:
+          type: string
+          enum:
+          - PENDIENTE
+          - ACTIVO
+          - VENCIDO
+          - DEVUELTO
+          - RECHAZADO
+          - CANCELADO
+      responses:
+        "200":
+          description: Página de préstamos del alumno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponsePrestamoResponse"
+        "400":
+          description: "Parámetros de paginación, orden o estado no válidos"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                MIS_PRESTAMOS_ESTADO_INVALIDO:
+                  summary: Estado inexistente
+                  description: MIS_PRESTAMOS_ESTADO_INVALIDO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: "Estado no válido: 'XX'. Use PENDIENTE, ACTIVO, VENCIDO,\
+                      \ DEVUELTO, RECHAZADO o CANCELADO"
+                    ruta: /api/prestamos/mis-prestamos
+                    errores: null
+        "403":
+          description: El rol no es ALUMNO
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                MIS_PRESTAMOS_SIN_PERMISO:
+                  summary: Usuario ADMIN o ENCARGADO
+                  description: MIS_PRESTAMOS_SIN_PERMISO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 403
+                    error: Forbidden
+                    mensaje: No tiene permisos para realizar esta operación
+                    ruta: /api/prestamos/mis-prestamos
+  /api/prestamos/mis-prestamos/resumen:
+    get:
+      tags:
+      - Préstamos
+      summary: Resumen de mis préstamos (ALUMNO)
+      description: "La misma agregación SUM(CASE WHEN ...) de /resumen, solo con los\
+        \ préstamos del alumno del JWT. Alimenta su pantalla de inicio y sus pestañ\
+        as."
+      operationId: misPrestamosResumen
+      responses:
+        "200":
+          description: Totales por estado del alumno
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConteoPrestamosDto"
+  /api/panel/resumen:
+    get:
+      tags:
+      - Panel
+      summary: Resumen del panel
+      description: "Equipos y unidades por estado, unidades prestadas, préstamos por\
+        \ estado y los 5 equipos más prestados. Se calcula con consultas JPQL de agregació\
+        n (GROUP BY, SUM, CASE WHEN) y proyecciones SELECT new."
+      operationId: resumen_1
+      responses:
+        "200":
+          description: Indicadores calculados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PanelResumenResponse"
+        "401":
+          description: Sin token o token inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                PANEL_SIN_TOKEN:
+                  summary: Sin token
+                  description: PANEL_SIN_TOKEN
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 401
+                    error: Unauthorized
+                    mensaje: Debe iniciar sesión para acceder a este recurso
+                    ruta: /api/panel/resumen
+  /api/equipos/paginado:
+    get:
+      tags:
+      - Equipos
+      summary: Listar equipos paginados
+      description: "Búsqueda paginada con JPQL por nombre, código o marca (sin distinguir\
+        \ mayúsculas), con filtros opcionales de estado y categoría. Ordenable por:\
+        \ codigo, nombre, categoria, marca, estado, cantidadTotal, cantidadDisponible."
+      operationId: paginado_2
+      parameters:
+      - name: page
+        in: query
+        description: "Número de página, empieza en 0"
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+        example: 0
+      - name: size
+        in: query
+        description: Registros por página (máximo 50)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+          maximum: 50
+          minimum: 1
+        example: 10
+      - name: sort
+        in: query
+        description: "Orden: campo,asc|desc"
+        required: false
+        schema:
+          type: string
+          default: "nombre,asc"
+        example: "nombre,asc"
+      - name: busqueda
+        in: query
+        description: "Texto a buscar en nombre, código o marca"
+        required: false
+        schema:
+          type: string
+        example: laptop
+      - name: estado
+        in: query
+        description: Filtro por estado
+        required: false
+        schema:
+          type: string
+          enum:
+          - OPERATIVO
+          - EN_MANTENIMIENTO
+          - DE_BAJA
+      - name: categoria
+        in: query
+        description: Filtro por categoría exacta
+        required: false
+        schema:
+          type: string
+        example: Laptops
+      responses:
+        "200":
+          description: Página de equipos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponseEquipoResponse"
+        "400":
+          description: "page < 0, size fuera de 1..50, campo de orden no permitido\
+            \ o estado inválido"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPOS_SIZE_INVALIDO:
+                  summary: size mayor a 50
+                  description: EQUIPOS_SIZE_INVALIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: Parámetros no válidos
+                    ruta: /api/equipos/paginado
+                    errores:
+                      size: size no puede ser mayor a 50
+                EQUIPOS_ORDEN_NO_PERMITIDO:
+                  summary: Campo de orden no permitido
+                  description: EQUIPOS_ORDEN_NO_PERMITIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: "No se puede ordenar por 'version'. Campos permitidos:\
+                      \ marca, categoria, nombre, cantidadDisponible, cantidadTotal,\
+                      \ codigo, estado"
+                    ruta: /api/equipos/paginado
+                    errores: null
+                EQUIPOS_ESTADO_INVALIDO:
+                  summary: Estado inexistente
+                  description: EQUIPOS_ESTADO_INVALIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 400
+                    error: Bad Request
+                    mensaje: El parámetro 'estado' tiene un valor inválido
+                    ruta: /api/equipos/paginado
+                    errores: null
+        "401":
+          description: Sin token o token inválido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                EQUIPOS_PAGINADO_SIN_TOKEN:
+                  summary: Sin token
+                  description: EQUIPOS_PAGINADO_SIN_TOKEN
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 401
+                    error: Unauthorized
+                    mensaje: Debe iniciar sesión para acceder a este recurso
+                    ruta: /api/equipos/paginado
+                EQUIPOS_PAGINADO_TOKEN_INVALIDO:
+                  summary: Token inválido
+                  description: EQUIPOS_PAGINADO_TOKEN_INVALIDO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 401
+                    error: Unauthorized
+                    mensaje: Token inválido
+                    ruta: /api/equipos/paginado
+  /api/equipos/disponibles:
+    get:
+      tags:
+      - Equipos
+      summary: "Equipos disponibles para préstamo (ADMIN, ENCARGADO y ALUMNO)"
+      description: "Consulta JPQL: equipos en estado OPERATIVO con cantidadDisponible\
+        \ > 0. La usa el formulario \"Solicitar préstamo\" del alumno."
+      operationId: disponibles
+      responses:
+        "200":
+          description: Equipos prestables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EquipoResponse"
+  /api/equipos/catalogo:
+    get:
+      tags:
+      - Equipos
+      summary: "Catálogo de equipos disponibles, paginado (ADMIN, ENCARGADO y ALUMNO)"
+      description: "Solo equipos OPERATIVOS con stock > 0, con búsqueda por nombre,\
+        \ código o marca y filtro de categoría. Mismos campos de orden que /paginado."
+      operationId: catalogo
+      parameters:
+      - name: page
+        in: query
+        description: "Número de página, empieza en 0"
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+        example: 0
+      - name: size
+        in: query
+        description: Registros por página (máximo 50)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 12
+          maximum: 50
+          minimum: 1
+        example: 12
+      - name: sort
+        in: query
+        description: "Orden: campo,asc|desc"
+        required: false
+        schema:
+          type: string
+          default: "nombre,asc"
+        example: "nombre,asc"
+      - name: busqueda
+        in: query
+        description: "Texto a buscar en nombre, código o marca"
+        required: false
+        schema:
+          type: string
+        example: laptop
+      - name: categoria
+        in: query
+        description: Filtro por categoría exacta
+        required: false
+        schema:
+          type: string
+        example: Laptops
+      responses:
+        "200":
+          description: Página del catálogo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponseEquipoResponse"
+        "400":
+          description: "page < 0, size fuera de 1..50 o campo de orden no permitido"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                CATALOGO_SIZE_INVALIDO:
+                  summary: size mayor a 50
+                  description: CATALOGO_SIZE_INVALIDO
+                  value:
+                    timestamp: 2026-11-26T15:20:41
+                    status: 400
+                    error: Bad Request
+                    mensaje: Parámetros no válidos
+                    ruta: /api/equipos/catalogo
+                    errores:
+                      size: size no puede ser mayor a 50
+  /api/usuarios/{id}:
+    delete:
+      tags:
+      - Usuarios
+      summary: Desactivar un usuario
+      description: Borrado lógico; no puede desactivarse a sí mismo.
+      operationId: delete_3
+      parameters:
+      - name: id
+        in: path
+        description: ID del usuario
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 2
+      responses:
+        "204":
+          description: Usuario desactivado
+        "404":
+          description: El usuario no existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                USUARIO_NO_ENCONTRADO:
+                  summary: Usuario inexistente
+                  description: USUARIO_NO_ENCONTRADO
+                  value:
+                    timestamp: 2026-11-25T09:45:18
+                    status: 404
+                    error: Not Found
+                    mensaje: Usuario con id 999 no encontrado
+                    ruta: /api/usuarios/999
+                    errores: null
+components:
+  schemas:
+    SolicitanteRequest:
+      type: object
+      description: Datos para registrar o actualizar un solicitante
+      properties:
+        dni:
+          type: string
+          example: "72345678"
+          minLength: 1
+          pattern: "\\d{8}"
+        nombres:
+          type: string
+          example: Ana
+          maxLength: 80
+          minLength: 2
+        apellidos:
+          type: string
+          example: Torres Díaz
+          maxLength: 80
+          minLength: 2
+        tipo:
+          type: string
+          enum:
+          - ESTUDIANTE
+          - DOCENTE
+          - ADMINISTRATIVO
+          example: ESTUDIANTE
+        area:
+          type: string
+          example: Ingeniería Industrial
+          maxLength: 100
+          minLength: 0
+        email:
+          type: string
+          format: email
+          example: ana.torres@upn.pe
+          maxLength: 100
+          minLength: 0
+        telefono:
+          type: string
+          example: "956789123"
+          pattern: "^$|9\\d{8}"
+      required:
+      - apellidos
+      - dni
+      - nombres
+      - tipo
+    ErrorResponse:
+      type: object
+      description: Cuerpo uniforme de error que devuelve GlobalExceptionHandler
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: 2026-11-24T10:15:02
+        status:
+          type: integer
+          format: int32
+          example: 409
+        error:
+          type: string
+          example: Conflict
+        mensaje:
+          type: string
+          example: "No hay unidades suficientes de 'Proyector multimedia Epson' (PRY-001).\
+            \ Disponibles: 1, solicitadas: 3. No se registró el préstamo."
+        ruta:
+          type: string
+          example: /api/prestamos
+        errores:
+          type: object
+          additionalProperties:
+            type: string
+          description: Errores por campo (400) o detalle del conflicto (409)
+    Solicitante:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        dni:
+          type: string
+        nombres:
+          type: string
+        apellidos:
+          type: string
+        tipo:
+          type: string
+          enum:
+          - ESTUDIANTE
+          - DOCENTE
+          - ADMINISTRATIVO
+        area:
+          type: string
+        email:
+          type: string
+        telefono:
+          type: string
+    DetallePrestamoRequest:
+      type: object
+      description: Equipo y cantidad dentro de un préstamo
+      properties:
+        equipoId:
+          type: integer
+          format: int64
+          example: 1
+        cantidad:
+          type: integer
+          format: int32
+          example: 2
+          maximum: 100
+          minimum: 1
+      required:
+      - cantidad
+      - equipoId
+    PrestamoRequest:
+      type: object
+      description: Datos para registrar o editar un préstamo con uno o varios equipos
+      properties:
+        solicitanteId:
+          type: integer
+          format: int64
+          example: 1
+        fechaDevolucionPrevista:
+          type: string
+          format: date
+          description: Hoy o una fecha posterior
+          example: 2026-12-01
+        observaciones:
+          type: string
+          example: "Clase de Redes, laboratorio 305"
+          maxLength: 255
+          minLength: 0
+        detalles:
+          type: array
+          description: Equipos y cantidades (al menos uno)
+          items:
+            $ref: "#/components/schemas/DetallePrestamoRequest"
+          minItems: 1
+      required:
+      - detalles
+      - fechaDevolucionPrevista
+      - solicitanteId
+    DetallePrestamoResponse:
+      type: object
+      description: Equipo y cantidad del préstamo; 'disponibles' es el stock actual
+        del equipo
+      properties:
+        equipoId:
+          type: integer
+          format: int64
+        codigo:
+          type: string
+        equipo:
+          type: string
+        cantidad:
+          type: integer
+          format: int32
+        disponibles:
+          type: integer
+          format: int32
+          example: 4
+        estadoEquipo:
+          type: string
+          example: OPERATIVO
+    PrestamoResponse:
+      type: object
+      description: Préstamo (o solicitud de un alumno) con su detalle de equipos
+      properties:
+        id:
+          type: integer
+          format: int64
+        fechaPrestamo:
+          type: string
+          format: date-time
+        fechaDevolucionPrevista:
+          type: string
+          format: date
+        fechaDevolucionReal:
+          type: string
+          format: date-time
+        estado:
+          type: string
+          description: "PENDIENTE, ACTIVO, VENCIDO, DEVUELTO, RECHAZADO o CANCELADO"
+          example: ACTIVO
+        solicitanteId:
+          type: integer
+          format: int64
+        solicitante:
+          type: string
+        tipoSolicitante:
+          type: string
+        registradoPor:
+          type: string
+        totalEquipos:
+          type: integer
+          format: int32
+        observaciones:
+          type: string
+          description: Observaciones del préstamo directo o motivo de la solicitud
+            del alumno
+        fechaSolicitud:
+          type: string
+          format: date-time
+          description: "Solo solicitudes de alumnos: cuándo se enviaron"
+        aprobadoPor:
+          type: string
+          description: ADMIN que aprobó o rechazó la solicitud
+          example: Administrador
+        fechaAprobacion:
+          type: string
+          format: date-time
+          description: Cuándo se aprobó o rechazó
+        motivoRechazo:
+          type: string
+          description: Motivo del rechazo
+          example: No hay proyectores para esa fecha
+        detalles:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetallePrestamoResponse"
+    RechazoRequest:
+      type: object
+      description: Motivo del rechazo de una solicitud (obligatorio)
+      properties:
+        motivo:
+          type: string
+          example: No hay proyectores disponibles para esa fecha
+          maxLength: 255
+          minLength: 5
+      required:
+      - motivo
+    PerfilRequest:
+      type: object
+      description: Datos de contacto que el alumno puede editar
+      properties:
+        email:
+          type: string
+          format: email
+          example: alumno.prueba@upn.pe
+          maxLength: 100
+          minLength: 0
+        telefono:
+          type: string
+          example: "951234567"
+          pattern: "^$|9\\d{8}"
+      required:
+      - email
+    PerfilResponse:
+      type: object
+      description: Perfil del alumno autenticado (su usuario y su solicitante vinculado)
+      properties:
+        username:
+          type: string
+          example: alumno
+        solicitanteId:
+          type: integer
+          format: int64
+          example: 6
+        dni:
+          type: string
+          example: "71234567"
+        nombres:
+          type: string
+          example: Alumno
+        apellidos:
+          type: string
+          example: Prueba UPN
+        tipo:
+          type: string
+          example: ESTUDIANTE
+        carrera:
+          type: string
+          example: Ingeniería de Sistemas
+        email:
+          type: string
+          example: alumno.prueba@upn.pe
+        telefono:
+          type: string
+          example: "951234567"
+    EquipoRequest:
+      type: object
+      description: Datos para registrar o actualizar un equipo
+      properties:
+        codigo:
+          type: string
+          example: LAP-003
+          maxLength: 20
+          minLength: 0
+        nombre:
+          type: string
+          example: Laptop Dell Latitude 5440
+          maxLength: 100
+          minLength: 2
+        categoria:
+          type: string
+          example: Laptops
+          maxLength: 50
+          minLength: 0
+        marca:
+          type: string
+          example: Dell
+          maxLength: 50
+          minLength: 0
+        modelo:
+          type: string
+          example: Latitude 5440
+          maxLength: 50
+          minLength: 0
+        descripcion:
+          type: string
+          example: "Core i5, 16 GB RAM"
+          maxLength: 255
+          minLength: 0
+        cantidadTotal:
+          type: integer
+          format: int32
+          example: 5
+          maximum: 1000
+          minimum: 1
+        estado:
+          type: string
+          enum:
+          - OPERATIVO
+          - EN_MANTENIMIENTO
+          - DE_BAJA
+          example: OPERATIVO
+      required:
+      - cantidadTotal
+      - categoria
+      - codigo
+      - estado
+      - nombre
+    Equipo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        codigo:
+          type: string
+        nombre:
+          type: string
+        categoria:
+          type: string
+        marca:
+          type: string
+        modelo:
+          type: string
+        descripcion:
+          type: string
+        cantidadTotal:
+          type: integer
+          format: int32
+        cantidadDisponible:
+          type: integer
+          format: int32
+        estado:
+          type: string
+          enum:
+          - OPERATIVO
+          - EN_MANTENIMIENTO
+          - DE_BAJA
+    DatosAlumnoRequest:
+      type: object
+      description: Datos del estudiante (obligatorios cuando rol = ALUMNO)
+      properties:
+        dni:
+          type: string
+          example: "72345678"
+          minLength: 1
+          pattern: "\\d{8}"
+        nombres:
+          type: string
+          example: Ana
+          maxLength: 80
+          minLength: 2
+        apellidos:
+          type: string
+          example: Torres Díaz
+          maxLength: 80
+          minLength: 2
+        email:
+          type: string
+          format: email
+          example: ana.torres@upn.pe
+          maxLength: 100
+          minLength: 0
+        telefono:
+          type: string
+          example: "956789123"
+          pattern: "^$|9\\d{8}"
+        area:
+          type: string
+          example: Ingeniería Industrial
+          maxLength: 100
+          minLength: 0
+      required:
+      - apellidos
+      - area
+      - dni
+      - email
+      - nombres
+    RegistroRequest:
+      type: object
+      description: Datos para crear un usuario del sistema
+      properties:
+        username:
+          type: string
+          example: jperez
+          minLength: 1
+          pattern: "^[a-zA-Z0-9._]{4,50}$"
+        password:
+          type: string
+          example: clave123
+          maxLength: 60
+          minLength: 6
+        nombre:
+          type: string
+          description: Obligatorio para ADMIN y ENCARGADO; para ALUMNO se ignora
+          example: Juan Pérez
+          maxLength: 100
+          minLength: 0
+        rol:
+          type: string
+          enum:
+          - ADMIN
+          - ENCARGADO
+          - ALUMNO
+          example: ENCARGADO
+        alumno:
+          $ref: "#/components/schemas/DatosAlumnoRequest"
+          description: "Solo para rol ALUMNO: datos del estudiante que se vincula\
+            \ al usuario"
+      required:
+      - password
+      - rol
+      - username
+    UsuarioResponse:
+      type: object
+      description: Usuario del sistema
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 8
+        username:
+          type: string
+          example: alumno
+        nombre:
+          type: string
+          example: Alumno Prueba UPN
+        rol:
+          type: string
+          example: ALUMNO
+        activo:
+          type: boolean
+          example: true
+        solicitanteId:
+          type: integer
+          format: int64
+          description: "Solo ALUMNO: id del solicitante vinculado"
+          example: 5
+        dni:
+          type: string
+          description: "Solo ALUMNO: DNI del estudiante vinculado"
+          example: "71234567"
+        carrera:
+          type: string
+          description: "Solo ALUMNO: carrera del estudiante"
+          example: Ingeniería de Sistemas
+    DetalleSolicitudRequest:
+      type: object
+      description: Equipo y cantidad dentro de una solicitud
+      properties:
+        equipoId:
+          type: integer
+          format: int64
+          example: 3
+        cantidad:
+          type: integer
+          format: int32
+          example: 1
+          maximum: 3
+          minimum: 1
+      required:
+      - cantidad
+      - equipoId
+    SolicitudRequest:
+      type: object
+      description: Solicitud de préstamo de un alumno (queda PENDIENTE hasta que el
+        ADMIN la apruebe)
+      properties:
+        fechaDevolucionPrevista:
+          type: string
+          format: date
+          description: Hoy o una fecha posterior
+          example: 2026-12-03
+        motivo:
+          type: string
+          example: "Exposición del curso de Redes, aula 305"
+          maxLength: 255
+          minLength: 5
+        detalles:
+          type: array
+          description: Equipos y cantidades (al menos uno)
+          items:
+            $ref: "#/components/schemas/DetalleSolicitudRequest"
+          maxItems: 5
+          minItems: 0
+      required:
+      - detalles
+      - fechaDevolucionPrevista
+      - motivo
+    LoginRequest:
+      type: object
+      description: Credenciales de acceso
+      properties:
+        username:
+          type: string
+          example: admin
+          minLength: 1
+        password:
+          type: string
+          example: admin123
+          minLength: 1
+      required:
+      - password
+      - username
+    AuthResponse:
+      type: object
+      description: "Respuesta del login: copie el token y péguelo en Authorize"
+      properties:
+        token:
+          type: string
+          description: JWT válido por 24 horas; incluye los claims rol y solicitanteId
+          example: eyJhbGciOiJIUzI1NiJ9...
+        tipo:
+          type: string
+          example: Bearer
+        username:
+          type: string
+          example: admin
+        nombre:
+          type: string
+          example: Administrador
+        rol:
+          type: string
+          example: ADMIN
+        solicitanteId:
+          type: integer
+          format: int64
+          description: "Solo ALUMNO: id de su solicitante (null para ADMIN y ENCARGADO)"
+          example: null
+    PageResponseSolicitanteResponse:
+      type: object
+      description: Página de resultados
+      properties:
+        content:
+          type: array
+          description: Elementos de la página actual
+          items:
+            $ref: "#/components/schemas/SolicitanteResponse"
+        page:
+          type: integer
+          format: int32
+          description: Número de página (empieza en 0)
+          example: 0
+        size:
+          type: integer
+          format: int32
+          description: Tamaño de página solicitado
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+          description: Total de registros que cumplen el filtro
+          example: 87
+        totalPages:
+          type: integer
+          format: int32
+          description: Total de páginas
+          example: 9
+        first:
+          type: boolean
+          description: ¿Es la primera página?
+          example: true
+        last:
+          type: boolean
+          description: ¿Es la última página?
+          example: false
+        sort:
+          type: string
+          description: Orden aplicado
+          example: "nombre,asc"
+    SolicitanteResponse:
+      type: object
+      description: Solicitante de préstamos
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        dni:
+          type: string
+          example: "70123456"
+        nombres:
+          type: string
+          example: María
+        apellidos:
+          type: string
+          example: Quispe Torres
+        tipo:
+          type: string
+          enum:
+          - ESTUDIANTE
+          - DOCENTE
+          - ADMINISTRATIVO
+          example: ESTUDIANTE
+        area:
+          type: string
+          example: Ingeniería de Sistemas
+        email:
+          type: string
+          example: maria.quispe@upn.pe
+        telefono:
+          type: string
+          example: "987654321"
+    ConteoPrestamosDto:
+      type: object
+      description: Cantidad de préstamos por estado
+      properties:
+        total:
+          type: integer
+          format: int64
+          example: 9
+        activos:
+          type: integer
+          format: int64
+          description: Activos dentro de plazo
+          example: 1
+        vencidos:
+          type: integer
+          format: int64
+          description: Activos con la fecha prevista vencida
+          example: 1
+        devueltos:
+          type: integer
+          format: int64
+          example: 4
+        pendientes:
+          type: integer
+          format: int64
+          description: Solicitudes de alumnos esperando aprobación
+          example: 2
+        rechazados:
+          type: integer
+          format: int64
+          description: Solicitudes rechazadas por el ADMIN
+          example: 1
+        cancelados:
+          type: integer
+          format: int64
+          description: Solicitudes canceladas por el alumno
+          example: 0
+    PageResponsePrestamoResponse:
+      type: object
+      description: Página de resultados
+      properties:
+        content:
+          type: array
+          description: Elementos de la página actual
+          items:
+            $ref: "#/components/schemas/PrestamoResponse"
+        page:
+          type: integer
+          format: int32
+          description: Número de página (empieza en 0)
+          example: 0
+        size:
+          type: integer
+          format: int32
+          description: Tamaño de página solicitado
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+          description: Total de registros que cumplen el filtro
+          example: 87
+        totalPages:
+          type: integer
+          format: int32
+          description: Total de páginas
+          example: 9
+        first:
+          type: boolean
+          description: ¿Es la primera página?
+          example: true
+        last:
+          type: boolean
+          description: ¿Es la última página?
+          example: false
+        sort:
+          type: string
+          description: Orden aplicado
+          example: "nombre,asc"
+    EquipoMasPrestadoDto:
+      type: object
+      description: Equipo con su total de unidades prestadas
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 8
+        codigo:
+          type: string
+          example: LAP-009
+        nombre:
+          type: string
+          example: Laptop ASUS
+        unidadesPrestadas:
+          type: integer
+          format: int64
+          description: Unidades prestadas en todo el historial
+          example: 13
+        prestamos:
+          type: integer
+          format: int64
+          description: Préstamos en los que aparece
+          example: 4
+    EquiposPorEstadoDto:
+      type: object
+      description: Equipos de un estado
+      properties:
+        estado:
+          type: string
+          enum:
+          - OPERATIVO
+          - EN_MANTENIMIENTO
+          - DE_BAJA
+          example: OPERATIVO
+        equipos:
+          type: integer
+          format: int64
+          description: Tipos de equipo en ese estado
+          example: 6
+        unidadesTotales:
+          type: integer
+          format: int64
+          example: 41
+        unidadesDisponibles:
+          type: integer
+          format: int64
+          example: 34
+    PanelResumenResponse:
+      type: object
+      description: Indicadores del panel de inicio
+      properties:
+        equiposPorEstado:
+          type: array
+          description: Equipos agrupados por estado
+          items:
+            $ref: "#/components/schemas/EquiposPorEstadoDto"
+        unidadesTotales:
+          type: integer
+          format: int64
+          example: 44
+        unidadesDisponibles:
+          type: integer
+          format: int64
+          description: Unidades en almacén de equipos OPERATIVOS
+          example: 37
+        unidadesPrestadas:
+          type: integer
+          format: int64
+          description: Unidades que están prestadas
+          example: 7
+        prestamos:
+          $ref: "#/components/schemas/ConteoPrestamosDto"
+          description: Conteo de préstamos por estado
+        topEquipos:
+          type: array
+          description: Los 5 equipos con más unidades prestadas en el historial
+          items:
+            $ref: "#/components/schemas/EquipoMasPrestadoDto"
+    EquipoResponse:
+      type: object
+      description: Equipo del inventario
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        codigo:
+          type: string
+          example: LAP-001
+        nombre:
+          type: string
+          example: Laptop Lenovo ThinkPad E14
+        categoria:
+          type: string
+          example: Laptops
+        marca:
+          type: string
+          example: Lenovo
+        modelo:
+          type: string
+          example: ThinkPad E14 Gen 5
+        descripcion:
+          type: string
+        cantidadTotal:
+          type: integer
+          format: int32
+          description: Unidades que posee la institución
+          example: 10
+        cantidadDisponible:
+          type: integer
+          format: int32
+          description: Unidades en almacén (total menos prestadas)
+          example: 8
+        estado:
+          type: string
+          enum:
+          - OPERATIVO
+          - EN_MANTENIMIENTO
+          - DE_BAJA
+          example: OPERATIVO
+    PageResponseEquipoResponse:
+      type: object
+      description: Página de resultados
+      properties:
+        content:
+          type: array
+          description: Elementos de la página actual
+          items:
+            $ref: "#/components/schemas/EquipoResponse"
+        page:
+          type: integer
+          format: int32
+          description: Número de página (empieza en 0)
+          example: 0
+        size:
+          type: integer
+          format: int32
+          description: Tamaño de página solicitado
+          example: 10
+        totalElements:
+          type: integer
+          format: int64
+          description: Total de registros que cumplen el filtro
+          example: 87
+        totalPages:
+          type: integer
+          format: int32
+          description: Total de páginas
+          example: 9
+        first:
+          type: boolean
+          description: ¿Es la primera página?
+          example: true
+        last:
+          type: boolean
+          description: ¿Es la última página?
+          example: false
+        sort:
+          type: string
+          description: Orden aplicado
+          example: "nombre,asc"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: Token JWT obtenido en POST /api/auth/login
+      name: bearerAuth
+      scheme: bearer
+      bearerFormat: JWT
