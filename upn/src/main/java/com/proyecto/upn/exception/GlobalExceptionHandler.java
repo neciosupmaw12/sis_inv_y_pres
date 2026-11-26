@@ -44,6 +44,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    /** Validación entre campos hecha en el servicio: mismo formato que @Valid (400 con 'errores'). */
+    @ExceptionHandler(ValidacionException.class)
+    public ResponseEntity<ErrorResponse> handleValidacion(ValidacionException ex, HttpServletRequest req) {
+        ErrorResponse body = new ErrorResponse(LocalDateTime.now(), 400, "Bad Request",
+                "Los datos enviados no son válidos", req.getRequestURI(), ex.getErrores());
+        return ResponseEntity.badRequest().body(body);
+    }
+
     /** Parámetros de la URL que no cumplen @Min/@Max (por ejemplo, page=-1 o size=500 en los listados paginados). */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<ErrorResponse> handleMethodValidation(HandlerMethodValidationException ex, HttpServletRequest req) {

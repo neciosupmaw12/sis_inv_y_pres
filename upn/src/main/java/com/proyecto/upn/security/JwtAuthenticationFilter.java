@@ -14,7 +14,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -44,8 +43,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Claims claims = jwtService.validar(token);
             UserDetails user = userDetailsService.loadUserByUsername(claims.getSubject());
             if (user.isEnabled()) {
+                // Los permisos (ROLE_*) se leen de la base en cada petición; el solicitanteId, del token firmado
                 var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                Object solicitante = claims.get(SesionJwt.CLAIM_SOLICITANTE);
+                auth.setDetails(new SesionJwt(claims.getSubject(), claims.get(SesionJwt.CLAIM_ROL, String.class),
+                        solicitante instanceof Number n ? n.longValue() : null));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } else {
                 request.setAttribute(ATRIBUTO_ERROR, "El usuario está desactivado");

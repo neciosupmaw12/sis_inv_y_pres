@@ -39,4 +39,13 @@ public class Usuario {
     @Builder.Default
     @Column(nullable = false)
     private Boolean activo = true;
+
+    /**
+     * Solo para el rol ALUMNO: el Solicitante (tipo ESTUDIANTE) a cuyo nombre se piden los préstamos.
+     * Relación 1 a 1 (columna usuarios.solicitante_id, única): un estudiante tiene como máximo un usuario.
+     * Su id viaja en el JWT (claim "solicitanteId") y el backend lo toma SIEMPRE de ahí, nunca del request.
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "solicitante_id", unique = true)
+    private Solicitante solicitante;
 }

@@ -55,6 +55,23 @@ public class DataInitializer implements CommandLineRunner {
                             .tipo(TipoSolicitante.DOCENTE).area("Facultad de Ingeniería")
                             .email("carlos.ramirez@upn.pe").telefono("912345678").build()));
         }
+        // Después de los solicitantes de ejemplo, para no alterar el "count() == 0" de arriba en una base nueva
+        alumnoDePrueba();
+    }
+
+    /** Usuario de prueba alumno / alumno123 vinculado a un estudiante sin préstamos previos. */
+    private void alumnoDePrueba() {
+        if (usuarioRepository.existsByUsername("alumno")) {
+            return;
+        }
+        Solicitante estudiante = solicitanteRepository.findByDni("71234567").orElseGet(() ->
+                solicitanteRepository.save(Solicitante.builder().dni("71234567").nombres("Alumno")
+                        .apellidos("Prueba UPN").tipo(TipoSolicitante.ESTUDIANTE).area("Ingeniería de Sistemas")
+                        .email("alumno.prueba@upn.pe").telefono("951234567").build()));
+        usuarioRepository.save(Usuario.builder().username("alumno").password(passwordEncoder.encode("alumno123"))
+                .nombre(estudiante.getNombres() + " " + estudiante.getApellidos()).rol(Rol.ALUMNO)
+                .solicitante(estudiante).build());
+        log.info("Usuario inicial creado: alumno (ALUMNO) vinculado al estudiante DNI {}", estudiante.getDni());
     }
 
     /** Crea el usuario solo si aún no existe. */

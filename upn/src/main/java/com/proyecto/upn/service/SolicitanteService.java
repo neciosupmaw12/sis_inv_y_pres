@@ -9,6 +9,8 @@ import com.proyecto.upn.exception.ConflictException;
 import com.proyecto.upn.exception.ResourceNotFoundException;
 import com.proyecto.upn.repository.PrestamoRepository;
 import com.proyecto.upn.repository.SolicitanteRepository;
+import com.proyecto.upn.repository.UsuarioRepository;
+import com.proyecto.upn.exception.BusinessException;
 import com.proyecto.upn.util.Paginacion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +28,7 @@ public class SolicitanteService {
 
     private final SolicitanteRepository solicitanteRepository;
     private final PrestamoRepository prestamoRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Transactional(readOnly = true)
     public List<Solicitante> listar() {
@@ -79,6 +82,12 @@ public class SolicitanteService {
         if (email != null && solicitanteRepository.existsByEmailAndIdNot(email.toLowerCase(), id)) {
             throw new ConflictException("Ya existe otro solicitante con el email " + email);
         }
+        if (req.tipo() != TipoSolicitante.ESTUDIANTE) {
+            usuarioRepository.findBySolicitanteId(id).ifPresent(u -> {
+                throw new BusinessException("El solicitante está vinculado al usuario '" + u.getUsername()
+                        + "' (ALUMNO); su tipo debe seguir siendo ESTUDIANTE");
+            });
+        }
         copiar(req, solicitante);
         return solicitanteRepository.save(solicitante);
     }
@@ -89,6 +98,10 @@ public class SolicitanteService {
         if (prestamoRepository.existsBySolicitanteId(id)) {
             throw new ConflictException("No se puede eliminar el solicitante porque tiene préstamos registrados");
         }
+        usuarioRepository.findBySolicitanteId(id).ifPresent(u -> {
+            throw new ConflictException("No se puede eliminar el solicitante porque está vinculado al usuario '"
+                    + u.getUsername() + "'");
+        });
         solicitanteRepository.delete(solicitante);
     }
 

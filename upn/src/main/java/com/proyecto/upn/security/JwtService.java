@@ -25,12 +25,17 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
+    /**
+     * Claims: sub (username), rol, nombre y, solo para ALUMNO, solicitanteId. El usuario debe venir con su solicitante
+     * cargado ({@code findWithSolicitanteByUsername}).
+     */
     public String generarToken(Usuario usuario) {
         Date ahora = new Date();
         return Jwts.builder()
                 .subject(usuario.getUsername())
-                .claim("rol", usuario.getRol().name())
+                .claim(SesionJwt.CLAIM_ROL, usuario.getRol().name())
                 .claim("nombre", usuario.getNombre())
+                .claim(SesionJwt.CLAIM_SOLICITANTE, usuario.getSolicitante() == null ? null : usuario.getSolicitante().getId())
                 .issuedAt(ahora)
                 .expiration(new Date(ahora.getTime() + expirationMs))
                 .signWith(key)
