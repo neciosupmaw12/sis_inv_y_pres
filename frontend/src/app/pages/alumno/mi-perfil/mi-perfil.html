@@ -1,0 +1,49 @@
+<div class="encabezado-pagina">
+  <h1><i class="bi bi-person-circle"></i> Mi perfil</h1>
+</div>
+
+@if (mensaje(); as m) {
+  <div class="alert" [ngClass]="'alert-' + m.tipo" role="alert">{{ m.texto }}</div>
+}
+
+@if (perfil(); as p) {
+  <div class="layout-crud">
+    <div class="tarjeta">
+      <h2 class="h5 mb-3">{{ p.nombres }} {{ p.apellidos }}</h2>
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Usuario</dt>
+        <dd class="col-sm-8"><code>{{ p.username }}</code></dd>
+        <dt class="col-sm-4">DNI</dt>
+        <dd class="col-sm-8">{{ p.dni }}</dd>
+        <dt class="col-sm-4">Carrera</dt>
+        <dd class="col-sm-8">{{ p.carrera || '—' }}</dd>
+        <dt class="col-sm-4">Correo</dt>
+        <dd class="col-sm-8">{{ p.email || '—' }}</dd>
+        <dt class="col-sm-4">Teléfono</dt>
+        <dd class="col-sm-8">{{ p.telefono || '—' }}</dd>
+      </dl>
+      <p class="small text-secondary mt-3 mb-0">
+        <i class="bi bi-info-circle"></i> Para corregir tu DNI, nombres o carrera, acércate a la oficina de TI.
+      </p>
+    </div>
+
+    <form class="tarjeta" [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+      <h2 class="h5 mb-3">Datos de contacto</h2>
+      <div class="mb-3">
+        <label class="form-label" for="email">Correo *</label>
+        <input id="email" class="form-control" type="email" formControlName="email" [class.is-invalid]="invalido('email')" />
+        <div class="invalid-feedback">{{ erroresServidor()['email'] || 'Correo válido' }}</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="telefono">Teléfono</label>
+        <input id="telefono" class="form-control" formControlName="telefono" inputmode="numeric" maxlength="9" [class.is-invalid]="invalido('telefono')" />
+        <div class="invalid-feedback">{{ erroresServidor()['telefono'] || '9 dígitos, empieza con 9' }}</div>
+      </div>
+      <button class="btn btn-primary w-100" type="submit" [disabled]="guardando() || form.pristine">
+        <i class="bi bi-check2"></i> Guardar
+      </button>
+    </form>
+  </div>
+} @else {
+  <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+}

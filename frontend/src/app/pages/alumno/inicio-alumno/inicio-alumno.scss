@@ -1,0 +1,69 @@
+@use '../../../../styles/variables' as v;
+@use '../../../../styles/mixins' as m;
+
+// Un color por estado (los mismos de los badges de préstamo)
+$colores: (
+  pendientes: v.$warning,
+  activos: v.$primary,
+  vencidos: #ea580c,
+  devueltos: v.$success,
+  rechazados: v.$danger,
+);
+
+.indicadores {
+  @include m.grid-auto(180px, 1rem);
+  margin-bottom: 1.25rem;
+}
+
+.indicador {
+  @include m.tarjeta;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  color: inherit;
+  text-decoration: none;
+  border-left: 4px solid v.$primary;
+  transition: transform 0.15s;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  i {
+    font-size: 1.7rem;
+  }
+
+  span {
+    display: block;
+    font-size: 0.8rem;
+    color: v.$secondary;
+  }
+
+  strong {
+    font-size: 1.6rem;
+    line-height: 1.2;
+  }
+
+  @each $nombre, $color in $colores {
+    &.#{$nombre} {
+      border-left-color: $color;
+
+      i {
+        color: $color;
+      }
+    }
+  }
+}
+
+.fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #eef0f5;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}

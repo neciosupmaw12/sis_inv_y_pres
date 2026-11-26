@@ -26,7 +26,13 @@ const ENLACES: Record<Rol, Enlace[]> = {
     { ruta: '/solicitantes', texto: 'Solicitantes', icono: 'bi-people' },
     { ruta: '/prestamos', texto: 'Préstamos', icono: 'bi-arrow-left-right' },
   ],
-  ALUMNO: [],
+  ALUMNO: [
+    { ruta: '/mi-inicio', texto: 'Inicio', icono: 'bi-house' },
+    { ruta: '/catalogo', texto: 'Catálogo', icono: 'bi-grid-3x3-gap' },
+    { ruta: '/solicitar', texto: 'Solicitar préstamo', icono: 'bi-send' },
+    { ruta: '/mis-prestamos', texto: 'Mis préstamos', icono: 'bi-journal-check' },
+    { ruta: '/mi-perfil', texto: 'Mi perfil', icono: 'bi-person-circle' },
+  ],
 };
 
 @Component({

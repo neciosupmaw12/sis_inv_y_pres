@@ -1,0 +1,98 @@
+<div class="encabezado-pagina">
+  <div>
+    <h1><i class="bi bi-grid-3x3-gap"></i> Catálogo de equipos</h1>
+    <small class="text-secondary">Equipos operativos con unidades disponibles para préstamo</small>
+  </div>
+  <a class="btn btn-primary" routerLink="/solicitar"><i class="bi bi-send"></i> Solicitar préstamo</a>
+</div>
+
+<!-- Filtros: buscador con debounce, categoría y orden; todo se guarda en la URL -->
+<div class="filtros tarjeta mb-3">
+  <div class="input-group buscador">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input
+      class="form-control"
+      type="search"
+      placeholder="Buscar por nombre, código o marca"
+      aria-label="Buscar equipos"
+      [formControl]="listado.busqueda"
+    />
+  </div>
+  <select
+    class="form-select"
+    aria-label="Filtrar por categoría"
+    (change)="listado.filtrar({ categoria: $any($event.target).value })"
+  >
+    <option value="" [selected]="!listado.consulta().categoria">Todas las categorías</option>
+    @for (c of categorias(); track c) {
+      <option [value]="c" [selected]="listado.consulta().categoria === c">{{ c }}</option>
+    }
+  </select>
+  <select class="form-select" aria-label="Ordenar por" (change)="listado.ordenar($any($event.target).value)">
+    @for (o of ordenes; track o.valor) {
+      <option [value]="o.valor" [selected]="listado.consulta().sort === o.valor">{{ o.texto }}</option>
+    }
+  </select>
+</div>
+
+@if (listado.error(); as error) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+    <span><i class="bi bi-exclamation-triangle"></i> {{ error }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="listado.recargar()">Reintentar</button>
+  </div>
+}
+
+<div class="contenedor-tabla" [class.cargando]="listado.cargando()">
+  @if (listado.cargando()) {
+    <div class="capa-carga" role="status">
+      <div class="spinner-border text-primary"></div>
+      <span class="visually-hidden">Cargando catálogo…</span>
+    </div>
+  }
+  <section class="lista">
+    @for (e of listado.pagina()?.content ?? []; track e.id) {
+      <article class="equipo">
+        <div class="cabeza">
+          <i class="bi icono" [class]="icono(e.categoria)"></i>
+          <span class="badge stock" [ngClass]="claseStock(e)">{{ e.cantidadDisponible }} disp.</span>
+        </div>
+        <strong>{{ e.nombre }}</strong>
+        <small class="text-secondary"><code>{{ e.codigo }}</code> · {{ e.categoria }}</small>
+        @if (e.marca || e.modelo) {
+          <small class="text-secondary">{{ e.marca }} {{ e.modelo }}</small>
+        }
+        @if (e.descripcion) {
+          <small class="descripcion">{{ e.descripcion }}</small>
+        }
+        <a class="btn btn-sm btn-outline-primary mt-auto" routerLink="/solicitar" [queryParams]="{ equipo: e.id }">
+          <i class="bi bi-plus-lg"></i> Solicitar
+        </a>
+      </article>
+    } @empty {
+      @if (!listado.cargando() && !listado.error()) {
+        <div class="sin-resultados text-secondary">
+          <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+          @if (listado.consulta().busqueda || listado.consulta().categoria) {
+            No hay equipos disponibles que coincidan con el filtro.
+            <button type="button" class="btn btn-link p-0 align-baseline" (click)="listado.limpiarFiltros()">Limpiar filtros</button>
+          } @else {
+            No hay equipos disponibles en este momento.
+          }
+        </div>
+      }
+    }
+  </section>
+</div>
+
+@if (listado.pagina(); as pg) {
+  <div class="tarjeta p-0 mt-3">
+    <app-paginacion
+      [pagina]="pg"
+      etiqueta="equipos"
+      [tamanos]="[5, 10, 20]"
+      [deshabilitado]="listado.cargando()"
+      (paginaCambio)="listado.irA($event)"
+      (tamanoCambio)="listado.cambiarTamano($event)"
+    />
+  </div>
+}

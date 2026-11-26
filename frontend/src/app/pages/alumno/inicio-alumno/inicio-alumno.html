@@ -1,0 +1,76 @@
+<div class="encabezado-pagina">
+  <div>
+    <h1>¡Hola, {{ auth.usuario()?.nombre }}!</h1>
+    <small class="text-secondary">{{ fecha | date: 'fullDate' }}</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary" routerLink="/catalogo"><i class="bi bi-grid-3x3-gap"></i> Ver catálogo</a>
+    <a class="btn btn-primary" routerLink="/solicitar"><i class="bi bi-send"></i> Solicitar préstamo</a>
+  </div>
+</div>
+
+@if (cargando()) {
+  <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+} @else if (conteo(); as c) {
+  @if (c.vencidos > 0) {
+    <div class="alert alert-danger d-flex gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle"></i>
+      <div>
+        Tienes <strong>{{ c.vencidos }}</strong> préstamo(s) vencido(s). Devuélvelos en la oficina de TI:
+        mientras tanto no podrás enviar nuevas solicitudes.
+      </div>
+    </div>
+  } @else if (c.pendientes >= limites.pendientes) {
+    <div class="alert alert-warning d-flex gap-2" role="alert">
+      <i class="bi bi-hourglass-split"></i>
+      <div>Tienes {{ c.pendientes }} solicitudes pendientes (el máximo). Espera a que se atiendan o cancela alguna.</div>
+    </div>
+  }
+
+  <!-- Resumen de mis préstamos por estado -->
+  <section class="indicadores">
+    <a class="indicador pendientes" routerLink="/mis-prestamos" [queryParams]="{ estado: 'PENDIENTE' }">
+      <i class="bi bi-hourglass-split"></i>
+      <div><span>Pendientes de aprobación</span><strong>{{ c.pendientes }}</strong></div>
+    </a>
+    <a class="indicador activos" routerLink="/mis-prestamos" [queryParams]="{ estado: 'ACTIVO' }">
+      <i class="bi bi-laptop"></i>
+      <div><span>En mi poder</span><strong>{{ c.activos }}</strong></div>
+    </a>
+    <a class="indicador vencidos" routerLink="/mis-prestamos" [queryParams]="{ estado: 'VENCIDO' }">
+      <i class="bi bi-exclamation-triangle"></i>
+      <div><span>Vencidos</span><strong>{{ c.vencidos }}</strong></div>
+    </a>
+    <a class="indicador devueltos" routerLink="/mis-prestamos" [queryParams]="{ estado: 'DEVUELTO' }">
+      <i class="bi bi-check2-circle"></i>
+      <div><span>Devueltos</span><strong>{{ c.devueltos }}</strong></div>
+    </a>
+    <a class="indicador rechazados" routerLink="/mis-prestamos" [queryParams]="{ estado: 'RECHAZADO' }">
+      <i class="bi bi-x-octagon"></i>
+      <div><span>Rechazados</span><strong>{{ c.rechazados }}</strong></div>
+    </a>
+  </section>
+
+  <div class="tarjeta">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h6 m-0">Mis últimos movimientos</h2>
+      <a routerLink="/mis-prestamos" class="small">Ver todos ({{ c.total }})</a>
+    </div>
+    @for (p of recientes(); track p.id) {
+      <div class="fila">
+        <div>
+          <div class="fw-semibold">#{{ p.id }} · {{ p.totalEquipos }} equipo(s)</div>
+          <small class="text-secondary">{{ (p.fechaSolicitud ?? p.fechaPrestamo) | date: 'mediumDate' }} · devolver hasta {{ p.fechaDevolucionPrevista | date: 'mediumDate' }}</small>
+          @if (p.estado === 'RECHAZADO' && p.motivoRechazo) {
+            <div class="small text-danger">Motivo: {{ p.motivoRechazo }}</div>
+          }
+        </div>
+        <span class="badge" [ngClass]="claseEstado[p.estado]">{{ p.estado | etiqueta }}</span>
+      </div>
+    } @empty {
+      <p class="text-secondary mb-0">
+        Aún no tienes préstamos. <a routerLink="/catalogo">Revisa el catálogo</a> y envía tu primera solicitud.
+      </p>
+    }
+  </div>
+}

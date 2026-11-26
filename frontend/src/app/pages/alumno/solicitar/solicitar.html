@@ -1,0 +1,128 @@
+<div class="encabezado-pagina">
+  <div>
+    <h1><i class="bi bi-send"></i> Solicitar préstamo</h1>
+    <small class="text-secondary">Tu solicitud quedará <strong>pendiente</strong> hasta que el administrador la apruebe.</small>
+  </div>
+  <a class="btn btn-outline-secondary" routerLink="/catalogo"><i class="bi bi-grid-3x3-gap"></i> Ver catálogo</a>
+</div>
+
+<div class="alert alert-info d-flex gap-2" role="note">
+  <i class="bi bi-info-circle"></i>
+  <div>
+    Puedes pedir hasta <strong>{{ limites.porEquipo }} unidades de cada equipo</strong> y
+    <strong>{{ limites.total }} en total</strong>, y tener como máximo {{ limites.pendientes }} solicitudes pendientes.
+    El stock se descuenta recién cuando el administrador aprueba; si para entonces ya no alcanza, la solicitud no se aprueba.
+  </div>
+</div>
+
+@if (error(); as e) {
+  <div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> {{ e.mensaje }}
+    @if (erroresDe(e).length) {
+      <ul class="mb-0 mt-1">
+        @for (m of erroresDe(e); track m) {
+          <li>{{ m }}</li>
+        }
+      </ul>
+    }
+  </div>
+}
+
+@if (cargando()) {
+  <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+} @else {
+  <form class="tarjeta" [formGroup]="form" (ngSubmit)="enviar()" novalidate>
+    <div formArrayName="detalles" class="lineas">
+      <div class="linea encabezado">
+        <span>Equipo</span><span>Cantidad</span><span class="text-center">Disponibles hoy</span><span></span>
+      </div>
+      @for (linea of lineas.controls; track linea; let i = $index) {
+        <div class="linea" [formGroupName]="i">
+          <select
+            class="form-select"
+            formControlName="equipoId"
+            aria-label="Equipo"
+            [class.is-invalid]="linea.get('equipoId')?.touched && linea.get('equipoId')?.invalid"
+          >
+            <option [ngValue]="null" disabled>Seleccione un equipo</option>
+            @for (e of equipos(); track e.id) {
+              <option [ngValue]="e.id" [disabled]="elegidoEnOtraLinea(e.id, i)">
+                {{ e.codigo }} · {{ e.nombre }}
+              </option>
+            }
+          </select>
+          <input
+            class="form-control"
+            type="number"
+            min="1"
+            aria-label="Cantidad"
+            [max]="maximo(linea.value.equipoId)"
+            formControlName="cantidad"
+            [class.is-invalid]="linea.get('cantidad')?.invalid"
+          />
+          <span class="text-center text-secondary">{{ equipo(linea.value.equipoId)?.cantidadDisponible ?? '—' }}</span>
+          <button
+            type="button"
+            class="btn btn-outline-danger btn-sm"
+            title="Quitar equipo"
+            [disabled]="lineas.length === 1"
+            (click)="quitarLinea(i)"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      }
+    </div>
+
+    <div class="pie">
+      <button
+        type="button"
+        class="btn btn-outline-primary btn-sm"
+        [disabled]="lineas.length >= limites.total || lineas.length >= equipos().length"
+        (click)="agregarLinea()"
+      >
+        <i class="bi bi-plus"></i> Agregar otro equipo
+      </button>
+      <div class="total" [class.text-danger]="total() > limites.total">
+        Total: <strong>{{ total() }}</strong> / {{ limites.total }} unidad(es)
+      </div>
+    </div>
+    @if (lineas.errors?.['totalMaximo']) {
+      <div class="text-danger small mt-1">La solicitud supera las {{ limites.total }} unidades permitidas.</div>
+    }
+
+    <div class="cabecera mt-3">
+      <div>
+        <label class="form-label" for="motivo">Motivo *</label>
+        <input
+          id="motivo"
+          class="form-control"
+          placeholder="Ej.: exposición del curso de Redes, aula 305"
+          formControlName="motivo"
+          maxlength="255"
+          [class.is-invalid]="form.controls.motivo.touched && form.controls.motivo.invalid"
+        />
+        <div class="invalid-feedback">Indique el motivo (de 5 a 255 caracteres)</div>
+      </div>
+      <div>
+        <label class="form-label" for="fecha">Devolver hasta *</label>
+        <input
+          id="fecha"
+          class="form-control"
+          type="date"
+          [min]="hoy"
+          formControlName="fechaDevolucionPrevista"
+          [class.is-invalid]="form.controls.fechaDevolucionPrevista.touched && form.controls.fechaDevolucionPrevista.invalid"
+        />
+        <div class="invalid-feedback">Indique la fecha de devolución</div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+      <a class="btn btn-outline-secondary" routerLink="/mis-prestamos">Cancelar</a>
+      <button type="submit" class="btn btn-success" [disabled]="enviando() || equipos().length === 0">
+        <i class="bi bi-send"></i> Enviar solicitud
+      </button>
+    </div>
+  </form>
+}

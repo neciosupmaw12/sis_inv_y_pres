@@ -1,0 +1,143 @@
+<div class="encabezado-pagina">
+  <h1><i class="bi bi-journal-check"></i> Mis préstamos</h1>
+  <a class="btn btn-primary" routerLink="/solicitar"><i class="bi bi-send"></i> Nueva solicitud</a>
+</div>
+
+@if (mensaje(); as m) {
+  <div class="alert" [ngClass]="'alert-' + m.tipo" role="alert">{{ m.texto }}</div>
+}
+
+<!-- Filtro por estado con los totales del alumno (agregación JPQL SUM CASE WHEN) -->
+<ul class="nav nav-pills mb-3">
+  @for (f of filtros; track f) {
+    <li class="nav-item">
+      <button class="nav-link d-flex align-items-center gap-2" [class.active]="filtroActual() === f" (click)="filtrar(f)">
+        {{ f === 'TODOS' ? 'Todos' : (f | etiqueta) }}
+        @if (contar(f) !== null) {
+          <span class="badge rounded-pill" [ngClass]="filtroActual() === f ? 'text-bg-light' : 'text-bg-secondary'">{{ contar(f) }}</span>
+        }
+      </button>
+    </li>
+  }
+</ul>
+
+<div class="tarjeta p-0 overflow-hidden">
+  @if (listado.error(); as error) {
+    <div class="alert alert-danger m-3 d-flex justify-content-between align-items-center" role="alert">
+      <span><i class="bi bi-exclamation-triangle"></i> {{ error }}</span>
+      <button type="button" class="btn btn-sm btn-outline-danger" (click)="listado.recargar()">Reintentar</button>
+    </div>
+  }
+  <div class="contenedor-tabla" [class.cargando]="listado.cargando()">
+    @if (listado.cargando()) {
+      <div class="capa-carga" role="status">
+        <div class="spinner-border text-primary"></div>
+        <span class="visually-hidden">Cargando tus préstamos…</span>
+      </div>
+    }
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th appOrden="id" [orden]="listado.consulta().sort" (ordenar)="listado.ordenar($event)">#</th>
+            <th appOrden="fechaPrestamo" [orden]="listado.consulta().sort" (ordenar)="listado.ordenar($event)">Fecha</th>
+            <th appOrden="fechaDevolucionPrevista" [orden]="listado.consulta().sort" (ordenar)="listado.ordenar($event)">Devolver hasta</th>
+            <th>Equipos</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of listado.pagina()?.content ?? []; track p.id) {
+            <tr [class.table-active]="abierto() === p.id">
+              <td>{{ p.id }}</td>
+              <td>{{ (p.fechaSolicitud ?? p.fechaPrestamo) | date: 'short' }}</td>
+              <td>{{ p.fechaDevolucionPrevista | date: 'mediumDate' }}</td>
+              <td class="equipos">{{ resumenEquipos(p) }}</td>
+              <td>
+                <span class="badge" [ngClass]="claseEstado[p.estado]">{{ p.estado | etiqueta }}</span>
+                @if (p.estado === 'RECHAZADO' && p.motivoRechazo) {
+                  <div class="small text-danger mt-1"><i class="bi bi-chat-left-text"></i> {{ p.motivoRechazo }}</div>
+                }
+                @if (p.estado === 'VENCIDO') {
+                  <div class="small text-danger mt-1">Devuélvelo en la oficina de TI</div>
+                }
+              </td>
+              <td>
+                <div class="acciones">
+                  <button class="btn btn-sm btn-outline-secondary" [title]="abierto() === p.id ? 'Ocultar detalle' : 'Ver detalle'" (click)="alternar(p)">
+                    <i class="bi" [class]="abierto() === p.id ? 'bi-chevron-up' : 'bi-eye'"></i>
+                  </button>
+                  @if (p.estado === 'PENDIENTE') {
+                    <button class="btn btn-sm btn-outline-danger" title="Cancelar solicitud" (click)="cancelar(p)">
+                      <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+            @if (abierto() === p.id) {
+              <tr class="detalle">
+                <td colspan="6">
+                  <div class="d-flex flex-wrap gap-4">
+                    <div>
+                      @if (p.observaciones) {
+                        <div><strong>Motivo:</strong> {{ p.observaciones }}</div>
+                      }
+                      @if (p.fechaSolicitud) {
+                        <div class="small text-secondary">Solicitado el {{ p.fechaSolicitud | date: 'medium' }}</div>
+                      }
+                      @if (p.aprobadoPor) {
+                        <div class="small text-secondary">
+                          {{ p.estado === 'RECHAZADO' ? 'Rechazado' : 'Aprobado' }} por {{ p.aprobadoPor }} el
+                          {{ p.fechaAprobacion | date: 'medium' }}
+                        </div>
+                      }
+                      @if (p.fechaDevolucionReal) {
+                        <div class="small text-secondary">Devuelto el {{ p.fechaDevolucionReal | date: 'medium' }}</div>
+                      }
+                    </div>
+                    <table class="table table-sm mb-0 w-auto">
+                      <thead><tr><th>Código</th><th>Equipo</th><th class="text-end">Cantidad</th></tr></thead>
+                      <tbody>
+                        @for (d of p.detalles; track d.equipoId) {
+                          <tr><td><code>{{ d.codigo }}</code></td><td>{{ d.equipo }}</td><td class="text-end">{{ d.cantidad }}</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            }
+          } @empty {
+            @if (!listado.cargando() && !listado.error()) {
+              <tr>
+                <td colspan="6" class="text-center text-secondary py-5">
+                  <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                  @if (filtroActual() === 'TODOS') {
+                    Aún no tienes préstamos. <a routerLink="/catalogo">Revisa el catálogo</a> y envía tu primera solicitud.
+                  } @else {
+                    No tienes préstamos en este estado.
+                  }
+                </td>
+              </tr>
+            } @else if (listado.cargando()) {
+              <tr><td colspan="6" class="py-5"></td></tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+  @if (listado.pagina(); as pg) {
+    <div class="border-top">
+      <app-paginacion
+        [pagina]="pg"
+        etiqueta="préstamos"
+        [deshabilitado]="listado.cargando()"
+        (paginaCambio)="listado.irA($event)"
+        (tamanoCambio)="listado.cambiarTamano($event)"
+      />
+    </div>
+  }
+</div>

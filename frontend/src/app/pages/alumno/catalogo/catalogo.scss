@@ -1,0 +1,42 @@
+@use '../../../../styles/variables' as v;
+@use '../../../../styles/mixins' as m;
+
+// Tarjetas del catálogo con CSS Grid
+.lista {
+  @include m.grid-auto(220px, 1rem);
+  align-content: start;
+}
+
+.sin-resultados {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.equipo {
+  @include m.tarjeta(1rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-height: 210px;
+
+  .cabeza {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
+  .icono {
+    font-size: 1.8rem;
+    color: v.$primary;
+  }
+
+  .descripcion {
+    color: v.$secondary;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
