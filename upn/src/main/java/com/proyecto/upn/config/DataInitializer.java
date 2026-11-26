@@ -7,14 +7,16 @@ import com.proyecto.upn.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/** Crea usuarios y datos de ejemplo la primera vez que se inicia la aplicación. */
+/** Crea usuarios y datos de ejemplo la primera vez que se inicia la aplicación (después de {@link MigracionEsquema}). */
 @Slf4j
 @Component
+@Order(2)
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 

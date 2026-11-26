@@ -2,6 +2,8 @@ package com.proyecto.upn.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,8 +35,10 @@ public class Prestamo {
 
     private LocalDateTime fechaDevolucionReal;
 
+    /** VARCHAR(20) en lugar del ENUM nativo de MySQL, igual que {@link Usuario#getRol()}. */
     @Builder.Default
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private EstadoPrestamo estado = EstadoPrestamo.ACTIVO;
 
