@@ -88,17 +88,19 @@ Se guarda quién aprobó o rechazó (`aprobadoPor`), cuándo (`fechaAprobacion`)
 
 ## Respaldo de la base de datos
 
-`database/upn_inventario.sql` contiene la estructura y los datos de la base `upn_inventario` (usuarios, equipos, solicitantes y préstamos).
-`database/upn_inventario_antes_rol_alumno.sql` es el respaldo tomado **antes** de agregar el rol ALUMNO.
+`database/upn_inventario.sql` contiene la estructura y los datos actuales de la base `upn_inventario` (usuarios, equipos,
+solicitantes y préstamos). En `database/` también están los respaldos de versiones anteriores (antes de la paginación y
+antes del rol ALUMNO); **[database/README.md](database/README.md)** explica cada archivo, su fecha y su estado.
 
 - **Restaurar** (crea la base si no existe y reemplaza sus tablas):
   ```
-  C:\xampp\mysql\bin\mysql.exe -uroot < database\upn_inventario.sql
+  C:\xampp\mysql\bin\mysql.exe -uroot < database\upn_inventario.sql                (CMD)
+  C:\xampp\mysql\bin\mysql.exe -uroot -e "source database/upn_inventario.sql"      (PowerShell)
   ```
   También se puede importar desde phpMyAdmin → **Importar**.
-- **Generar un nuevo respaldo:**
+- **Generar un nuevo respaldo** (con `--result-file`: la redirección `>` de PowerShell guarda en UTF-16 y luego no se puede importar):
   ```
-  C:\xampp\mysql\bin\mysqldump.exe -uroot --databases upn_inventario --default-character-set=utf8mb4 --skip-dump-date --add-drop-table --routines > database\upn_inventario.sql
+  C:\xampp\mysql\bin\mysqldump.exe -uroot --databases upn_inventario --add-drop-table --routines --default-character-set=utf8mb4 --result-file=database\upn_inventario.sql
   ```
 
 Si no se restaura el respaldo, el backend crea las tablas y los datos iniciales automáticamente al arrancar.
