@@ -1,6 +1,8 @@
 package com.proyecto.upn.service;
 
 import com.proyecto.upn.dto.PageResponse;
+import com.proyecto.upn.dto.PerfilRequest;
+import com.proyecto.upn.dto.PerfilResponse;
 import com.proyecto.upn.dto.SolicitanteRequest;
 import com.proyecto.upn.dto.SolicitanteResponse;
 import com.proyecto.upn.entity.Solicitante;
@@ -56,6 +58,25 @@ public class SolicitanteService {
     public Solicitante buscar(Long id) {
         return solicitanteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Solicitante", id));
+    }
+
+    /** Perfil del alumno: el solicitante sale del JWT, nunca de un parámetro. */
+    @Transactional(readOnly = true)
+    public PerfilResponse perfil(Long solicitanteId, String username) {
+        return PerfilResponse.de(username, buscar(solicitanteId));
+    }
+
+    /** El alumno actualiza solo su correo y su teléfono (409 si el correo ya es de otro solicitante). */
+    @Transactional(rollbackFor = Exception.class)
+    public PerfilResponse actualizarContacto(Long solicitanteId, String username, PerfilRequest req) {
+        Solicitante solicitante = buscar(solicitanteId);
+        String email = req.email().trim().toLowerCase();
+        if (solicitanteRepository.existsByEmailAndIdNot(email, solicitanteId)) {
+            throw new ConflictException("Ya existe otro solicitante con el email " + email);
+        }
+        solicitante.setEmail(email);
+        solicitante.setTelefono(limpiar(req.telefono()));
+        return PerfilResponse.de(username, solicitante);
     }
 
     @Transactional(rollbackFor = Exception.class)

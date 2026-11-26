@@ -8,9 +8,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(description = "Cantidad de préstamos por estado")
 public record ConteoPrestamosDto(
-        @Schema(example = "6") Long total,
+        @Schema(example = "9") Long total,
         @Schema(description = "Activos dentro de plazo", example = "1") Long activos,
         @Schema(description = "Activos con la fecha prevista vencida", example = "1") Long vencidos,
-        @Schema(example = "4") Long devueltos
+        @Schema(example = "4") Long devueltos,
+        @Schema(description = "Solicitudes de alumnos esperando aprobación", example = "2") Long pendientes,
+        @Schema(description = "Solicitudes rechazadas por el ADMIN", example = "1") Long rechazados,
+        @Schema(description = "Solicitudes canceladas por el alumno", example = "0") Long cancelados
 ) {
 }

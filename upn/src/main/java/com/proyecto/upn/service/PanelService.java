@@ -3,6 +3,7 @@ package com.proyecto.upn.service;
 import com.proyecto.upn.dto.EquiposPorEstadoDto;
 import com.proyecto.upn.dto.PanelResumenResponse;
 import com.proyecto.upn.entity.EstadoEquipo;
+import com.proyecto.upn.entity.EstadoPrestamo;
 import com.proyecto.upn.repository.EquipoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +33,7 @@ public class PanelService {
                 .mapToLong(e -> e.unidadesTotales() - e.unidadesDisponibles()).sum();
         return new PanelResumenResponse(porEstado, totales, disponiblesOperativos, prestadas,
                 prestamoService.contarPorEstado(),
-                equipoRepository.masPrestados(PageRequest.of(0, TOP_EQUIPOS)));
+                equipoRepository.masPrestados(List.of(EstadoPrestamo.ACTIVO, EstadoPrestamo.DEVUELTO),
+                        PageRequest.of(0, TOP_EQUIPOS)));
     }
 }

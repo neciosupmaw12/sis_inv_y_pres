@@ -51,8 +51,24 @@ public class Prestamo {
     @JoinColumn(name = "usuario_id")
     private Usuario registradoPor;
 
+    /** Observaciones del préstamo directo, o el motivo que escribió el alumno en su solicitud. */
     @Column(length = 255)
     private String observaciones;
+
+    /** Cuándo el alumno envió la solicitud; null en los préstamos directos de ADMIN / ENCARGADO. */
+    private LocalDateTime fechaSolicitud;
+
+    /** ADMIN que aprobó o rechazó la solicitud. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "aprobado_por_id")
+    private Usuario aprobadoPor;
+
+    /** Cuándo se aprobó o rechazó la solicitud. */
+    private LocalDateTime fechaAprobacion;
+
+    /** Obligatorio al rechazar; se muestra al alumno en "Mis préstamos". */
+    @Column(length = 255)
+    private String motivoRechazo;
 
     @Builder.Default
     @OneToMany(mappedBy = "prestamo", cascade = CascadeType.ALL, orphanRemoval = true)

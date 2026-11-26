@@ -104,7 +104,7 @@ public class PrestamoController {
                     examples = @ExampleObject(name = "PRESTAMO_NO_ENCONTRADO", summary = "Préstamo inexistente", value = EjemplosError.PRESTAMO_NO_ENCONTRADO)))
     @GetMapping("/{id}")
     public ResponseEntity<PrestamoResponse> show(@Parameter(description = "ID del préstamo", example = "2") @PathVariable Long id) {
-        return ResponseEntity.ok(prestamoService.buscar(id));
+        return ResponseEntity.ok(prestamoService.buscar(id, null));
     }
 
     /** El usuario que registra el préstamo se toma del JWT. */

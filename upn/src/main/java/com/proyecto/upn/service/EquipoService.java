@@ -54,6 +54,20 @@ public class EquipoService {
         return PageResponse.of(pagina, EquipoResponse::de, Paginacion.normalizarOrden(sort, ORDEN_POR_DEFECTO));
     }
 
+    /**
+     * Catálogo del alumno: solo equipos OPERATIVOS con stock &gt; 0 (consulta JPQL b'), paginado, con búsqueda y
+     * filtro de categoría. Usa la misma lista blanca de orden que el inventario.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<EquipoResponse> catalogo(Integer page, Integer size, String sort, String busqueda,
+                                                 String categoria) {
+        Pageable pageable = Paginacion.crear(page, size, sort, ORDEN_PERMITIDO, ORDEN_POR_DEFECTO);
+        String cat = categoria == null || categoria.isBlank() ? null : categoria.trim();
+        Page<Equipo> pagina = equipoRepository.buscarPrestables(EstadoEquipo.OPERATIVO, Paginacion.patron(busqueda),
+                cat, pageable);
+        return PageResponse.of(pagina, EquipoResponse::de, Paginacion.normalizarOrden(sort, ORDEN_POR_DEFECTO));
+    }
+
     /** Equipos OPERATIVOS con al menos una unidad disponible (consulta JPQL b). */
     @Transactional(readOnly = true)
     public List<EquipoResponse> listarPrestables() {

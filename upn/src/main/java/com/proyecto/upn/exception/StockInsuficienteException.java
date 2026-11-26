@@ -16,8 +16,14 @@ public class StockInsuficienteException extends RuntimeException {
     private final int solicitadas;
 
     public StockInsuficienteException(Long equipoId, String codigo, String nombre, int disponibles, int solicitadas) {
+        this(equipoId, codigo, nombre, disponibles, solicitadas, "No se registró el préstamo.");
+    }
+
+    /** @param resultado cierre del mensaje, por ejemplo "No se aprobó la solicitud." */
+    public StockInsuficienteException(Long equipoId, String codigo, String nombre, int disponibles, int solicitadas,
+                                      String resultado) {
         super("No hay unidades suficientes de '" + nombre + "' (" + codigo + "). Disponibles: " + disponibles
-                + ", solicitadas: " + solicitadas + ". No se registró el préstamo.");
+                + ", solicitadas: " + solicitadas + ". " + resultado);
         this.equipoId = equipoId;
         this.codigo = codigo;
         this.disponibles = disponibles;
