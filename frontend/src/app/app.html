@@ -1,6 +1,8 @@
 @if (auth.autenticado()) {
   <app-navbar />
 }
-<main [class.contenido]="auth.autenticado()">
+<main [class.contenido]="auth.autenticado()" [class.pantalla-completa]="!auth.autenticado()">
   <router-outlet />
 </main>
+<!-- En todas las pantallas, incluido el login: queda al final aunque haya poco contenido -->
+<app-footer />

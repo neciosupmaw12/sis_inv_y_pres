@@ -2,9 +2,16 @@
 @use '../../../styles/variables' as v;
 @use '../../../styles/mixins' as m;
 
+// El login llena el espacio sobre el footer (main.pantalla-completa es una columna flex), sin generar scroll
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+}
+
 .pantalla {
   @include m.flex-centro;
-  min-height: 100vh;
+  flex: 1 0 auto;
   padding: 1rem;
   background: linear-gradient(135deg, v.$primary, color.scale(v.$primary, $lightness: -45%));
 }

@@ -1,0 +1,47 @@
+@use 'sass:color';
+@use '../../../styles/variables' as v;
+@use '../../../styles/mixins' as m;
+
+:host {
+  display: block;
+}
+
+// Footer en el flujo normal de la página (no fixed): nunca tapa tablas ni la paginación
+.pie-pagina {
+  background: #fff;
+  border-top: 1px solid rgba(v.$primary, 0.12);
+  padding: 1rem 1rem 1.1rem;
+  text-align: center;
+  color: v.$secondary;
+
+  p {
+    margin: 0;
+  }
+
+  .principal {
+    font-size: 0.95rem;
+    color: color.scale(v.$secondary, $lightness: -30%);
+
+    i,
+    strong {
+      color: v.$primary;
+    }
+  }
+
+  .secundario {
+    margin-top: 0.15rem;
+    font-size: 0.8rem;
+  }
+
+  @include m.movil {
+    padding: 0.75rem 0.75rem 0.85rem;
+
+    .principal {
+      font-size: 0.875rem;
+    }
+
+    .secundario {
+      font-size: 0.75rem;
+    }
+  }
+}
