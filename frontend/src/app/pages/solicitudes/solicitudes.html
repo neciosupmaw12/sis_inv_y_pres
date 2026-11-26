@@ -1,0 +1,166 @@
+<div class="encabezado-pagina">
+  <div>
+    <h1>
+      <i class="bi bi-inbox"></i> Solicitudes pendientes
+      @if (listado.pagina(); as pg) {
+        <span class="badge rounded-pill text-bg-warning align-middle">{{ pg.totalElements }}</span>
+      }
+    </h1>
+    <small class="text-secondary">Solicitudes de alumnos por atender, de la más antigua a la más reciente</small>
+  </div>
+  <div class="input-group buscador">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input class="form-control" type="search" placeholder="Alumno o DNI" aria-label="Buscar por alumno" [formControl]="listado.busqueda" />
+  </div>
+</div>
+
+@if (mensaje(); as m) {
+  <div class="alert" [ngClass]="'alert-' + m.tipo" role="alert">{{ m.texto }}</div>
+}
+@if (listado.error(); as error) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center" role="alert">
+    <span><i class="bi bi-exclamation-triangle"></i> {{ error }}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger" (click)="listado.recargar()">Reintentar</button>
+  </div>
+}
+
+<div class="contenedor-tabla" [class.cargando]="listado.cargando()">
+  @if (listado.cargando()) {
+    <div class="capa-carga" role="status">
+      <div class="spinner-border text-primary"></div>
+      <span class="visually-hidden">Cargando solicitudes…</span>
+    </div>
+  }
+  <section class="lista">
+    @for (p of listado.pagina()?.content ?? []; track p.id) {
+      <article class="solicitud tarjeta" [class.sin-stock]="!alcanza(p)">
+        <header>
+          <div>
+            <h2 class="h6 m-0">#{{ p.id }} · {{ p.solicitante }} <small class="text-secondary fw-normal">({{ p.tipoSolicitante | etiqueta }})</small></h2>
+            <small class="text-secondary">
+              Solicitada el {{ (p.fechaSolicitud ?? p.fechaPrestamo) | date: 'medium' }} · Devolver hasta
+              <strong [class.text-danger]="fechaPasada(p)">{{ p.fechaDevolucionPrevista | date: 'longDate' }}</strong>
+            </small>
+          </div>
+          <span class="badge text-bg-warning">Pendiente</span>
+        </header>
+
+        @if (p.observaciones) {
+          <p class="motivo"><i class="bi bi-chat-left-text"></i> {{ p.observaciones }}</p>
+        }
+
+        <table class="table table-sm align-middle mb-2">
+          <thead>
+            <tr><th>Equipo</th><th class="text-center">Pedidas</th><th class="text-center">Stock actual</th></tr>
+          </thead>
+          <tbody>
+            @for (d of p.detalles; track d.equipoId) {
+              <tr>
+                <td>
+                  <code>{{ d.codigo }}</code> {{ d.equipo }}
+                  @if (d.estadoEquipo !== 'OPERATIVO') {
+                    <span class="badge text-bg-secondary ms-1">{{ d.estadoEquipo | etiqueta }}</span>
+                  }
+                </td>
+                <td class="text-center">{{ d.cantidad }}</td>
+                <td class="text-center">
+                  <span class="badge stock" [ngClass]="d.disponibles >= d.cantidad ? 'text-bg-success' : 'text-bg-danger'">
+                    {{ d.disponibles }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (!alcanza(p)) {
+          <div class="alert alert-danger py-2 small mb-2">
+            <i class="bi bi-exclamation-octagon"></i> Hoy no hay stock suficiente (o un equipo no está operativo):
+            si la aprueba, el sistema responderá con error y no descontará nada.
+          </div>
+        }
+        @if (fechaPasada(p)) {
+          <div class="alert alert-warning py-2 small mb-2">
+            <i class="bi bi-calendar-x"></i> La fecha de devolución ya pasó: no se puede aprobar, recházela.
+          </div>
+        }
+
+        <footer>
+          <button class="btn btn-outline-danger" [disabled]="procesando() === p.id" (click)="abrirRechazo(p)">
+            <i class="bi bi-x-lg"></i> Rechazar
+          </button>
+          <button class="btn btn-success" [disabled]="procesando() === p.id" (click)="aprobar(p)">
+            @if (procesando() === p.id) {
+              <span class="spinner-border spinner-border-sm"></span>
+            } @else {
+              <i class="bi bi-check2-circle"></i>
+            }
+            Aprobar
+          </button>
+        </footer>
+      </article>
+    } @empty {
+      @if (!listado.cargando() && !listado.error()) {
+        <div class="sin-resultados tarjeta text-secondary">
+          <i class="bi bi-check2-all fs-2 d-block mb-2 text-success"></i>
+          @if (listado.consulta().busqueda) {
+            No hay solicitudes pendientes de alumnos que coincidan con "{{ listado.consulta().busqueda }}".
+          } @else {
+            No hay solicitudes pendientes. ¡Todo atendido!
+          }
+        </div>
+      }
+    }
+  </section>
+</div>
+
+@if (listado.pagina(); as pg) {
+  @if (pg.totalPages > 1) {
+    <div class="tarjeta p-0 mt-3">
+      <app-paginacion
+        [pagina]="pg"
+        etiqueta="solicitudes"
+        [deshabilitado]="listado.cargando()"
+        (paginaCambio)="listado.irA($event)"
+        (tamanoCambio)="listado.cambiarTamano($event)"
+      />
+    </div>
+  }
+}
+
+<!-- Modal de rechazo (motivo obligatorio) -->
+@if (rechazando(); as r) {
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="titulo-rechazo">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" (ngSubmit)="confirmarRechazo()" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="titulo-rechazo">Rechazar la solicitud #{{ r.id }}</h5>
+          <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarRechazo()"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">
+            Alumno: <strong>{{ r.solicitante }}</strong> · {{ r.totalEquipos }} unidad(es). El stock no se modifica.
+          </p>
+          <label class="form-label" for="motivo-rechazo">Motivo del rechazo *</label>
+          <textarea
+            id="motivo-rechazo"
+            class="form-control"
+            rows="3"
+            maxlength="255"
+            placeholder="Ej.: no hay proyectores disponibles para esa fecha"
+            [formControl]="motivo"
+            [class.is-invalid]="(motivo.touched && motivo.invalid) || errorRechazo()"
+          ></textarea>
+          <div class="invalid-feedback">{{ errorRechazo() || 'Escriba el motivo (de 5 a 255 caracteres): el alumno lo verá.' }}</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="cerrarRechazo()">Cancelar</button>
+          <button type="submit" class="btn btn-danger" [disabled]="procesando() === r.id">
+            <i class="bi bi-x-octagon"></i> Rechazar solicitud
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

@@ -263,6 +263,11 @@
                   }
                   <!-- Editar y anular: solo administrador -->
                   @if (auth.esAdmin()) {
+                    @if (p.estado === 'PENDIENTE') {
+                      <a class="btn btn-sm btn-outline-warning" routerLink="/solicitudes" title="Atender en Solicitudes (aprobar o rechazar)">
+                        <i class="bi bi-inbox"></i>
+                      </a>
+                    }
                     @if (entregado(p)) {
                       <button class="btn btn-sm btn-outline-primary" title="Editar" (click)="editar(p)">
                         <i class="bi bi-pencil"></i>

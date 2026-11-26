@@ -43,7 +43,12 @@
         <small>{{ vencidos() > 0 ? 'Requieren seguimiento' : 'Todo al día' }}</small>
       </div>
     </a>
-    <a class="indicador pendientes" routerLink="/prestamos" [queryParams]="{ estado: 'PENDIENTE' }">
+    <!-- El ADMIN las atiende en /solicitudes; el ENCARGADO solo las consulta en /prestamos -->
+    <a
+      class="indicador pendientes"
+      [routerLink]="auth.esAdmin() ? '/solicitudes' : '/prestamos'"
+      [queryParams]="auth.esAdmin() ? null : { estado: 'PENDIENTE' }"
+    >
       <i class="bi bi-hourglass-split"></i>
       <div>
         <span>Solicitudes de alumnos pendientes</span>

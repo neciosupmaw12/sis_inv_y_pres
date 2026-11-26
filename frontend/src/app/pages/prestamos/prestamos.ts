@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, NgClass } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { EquipoService } from '../../core/services/equipo.service';
 import { SolicitanteService } from '../../core/services/solicitante.service';
@@ -35,7 +36,7 @@ function fechaLocal(dias = 0): string {
 
 @Component({
   selector: 'app-prestamos',
-  imports: [ReactiveFormsModule, DatePipe, NgClass, EtiquetaPipe, Paginacion, CabeceraOrden],
+  imports: [ReactiveFormsModule, DatePipe, NgClass, RouterLink, EtiquetaPipe, Paginacion, CabeceraOrden],
   templateUrl: './prestamos.html',
   styleUrl: './prestamos.scss',
 })

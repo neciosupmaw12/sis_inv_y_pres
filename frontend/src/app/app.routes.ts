@@ -10,6 +10,7 @@ import { Equipos } from './pages/equipos/equipos';
 import { Solicitantes } from './pages/solicitantes/solicitantes';
 import { Prestamos } from './pages/prestamos/prestamos';
 import { Usuarios } from './pages/usuarios/usuarios';
+import { Solicitudes } from './pages/solicitudes/solicitudes';
 import { InicioAlumno } from './pages/alumno/inicio-alumno/inicio-alumno';
 import { Catalogo } from './pages/alumno/catalogo/catalogo';
 import { Solicitar } from './pages/alumno/solicitar/solicitar';
@@ -35,6 +36,7 @@ export const routes: Routes = [
 
   // Solo ADMIN
   { path: 'usuarios', component: Usuarios, title: 'Usuarios', ...protegida(SOLO_ADMIN) },
+  { path: 'solicitudes', component: Solicitudes, title: 'Solicitudes pendientes', ...protegida(SOLO_ADMIN) },
 
   // Solo ALUMNO
   { path: 'mi-inicio', component: InicioAlumno, title: 'Inicio', ...protegida(ALUMNO) },

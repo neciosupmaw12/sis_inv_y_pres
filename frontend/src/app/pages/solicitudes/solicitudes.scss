@@ -1,0 +1,58 @@
+@use '../../../styles/variables' as v;
+@use '../../../styles/mixins' as m;
+
+.buscador {
+  max-width: 280px;
+
+  @include m.movil {
+    max-width: none;
+  }
+}
+
+// Una tarjeta por solicitud, en columnas automáticas
+.lista {
+  @include m.grid-auto(420px, 1rem);
+  align-content: start;
+
+  @include m.movil {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sin-resultados {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.solicitud {
+  display: flex;
+  flex-direction: column;
+  border-left: 4px solid v.$warning;
+
+  &.sin-stock {
+    border-left-color: v.$danger;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .motivo {
+    background: rgba(v.$primary, 0.05);
+    border-radius: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.5rem;
+  }
+
+  footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: auto;
+  }
+}

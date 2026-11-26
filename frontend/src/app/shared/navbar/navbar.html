@@ -26,6 +26,11 @@
               (click)="abierto.set(false)"
             >
               <i class="bi" [class]="enlace.icono"></i> {{ enlace.texto }}
+              @if (enlace.contador && pendientes.cantidad() > 0) {
+                <span class="badge rounded-pill text-bg-warning" [title]="pendientes.cantidad() + ' solicitud(es) pendiente(s)'">
+                  {{ pendientes.cantidad() }}
+                </span>
+              }
             </a>
           </li>
         }
