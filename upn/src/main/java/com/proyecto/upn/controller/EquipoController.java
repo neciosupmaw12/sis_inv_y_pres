@@ -1,5 +1,6 @@
 package com.proyecto.upn.controller;
 
+import com.proyecto.upn.config.EjemplosError;
 import com.proyecto.upn.dto.EquipoRequest;
 import com.proyecto.upn.dto.EquipoResponse;
 import com.proyecto.upn.dto.ErrorResponse;
@@ -10,6 +11,7 @@ import com.proyecto.upn.service.EquipoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +19,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -27,7 +30,7 @@ import java.util.List;
 @Tag(name = "Equipos", description = "Inventario de equipos tecnológicos (equivale a \"productos\"). "
         + "Consultar: ADMIN y ENCARGADO · Registrar, editar y eliminar: solo ADMIN")
 @RestController
-@RequestMapping("/api/equipos")
+@RequestMapping(path = "/api/equipos", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class EquipoController {
 
@@ -39,7 +42,11 @@ public class EquipoController {
                     + "préstamos para elegir equipos. Para el listado de la pantalla use /api/equipos/paginado.")
     @ApiResponse(responseCode = "200", description = "Lista de equipos")
     @ApiResponse(responseCode = "401", description = "Sin token o token inválido",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = {
+                            @ExampleObject(name = "EQUIPOS_SIN_TOKEN", summary = "Sin token", value = EjemplosError.EQUIPOS_SIN_TOKEN),
+                            @ExampleObject(name = "EQUIPOS_TOKEN_EXPIRADO", summary = "Token expirado", value = EjemplosError.EQUIPOS_TOKEN_EXPIRADO)}))
     @GetMapping
     public ResponseEntity<List<Equipo>> index() {
         return ResponseEntity.ok(equipoService.listar());
@@ -52,9 +59,18 @@ public class EquipoController {
                     + "estado, cantidadTotal, cantidadDisponible.")
     @ApiResponse(responseCode = "200", description = "Página de equipos")
     @ApiResponse(responseCode = "400", description = "page < 0, size fuera de 1..50, campo de orden no permitido o estado inválido",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = {
+                            @ExampleObject(name = "EQUIPOS_SIZE_INVALIDO", summary = "size mayor a 50", value = EjemplosError.EQUIPOS_SIZE_INVALIDO),
+                            @ExampleObject(name = "EQUIPOS_ORDEN_NO_PERMITIDO", summary = "Campo de orden no permitido", value = EjemplosError.EQUIPOS_ORDEN_NO_PERMITIDO),
+                            @ExampleObject(name = "EQUIPOS_ESTADO_INVALIDO", summary = "Estado inexistente", value = EjemplosError.EQUIPOS_ESTADO_INVALIDO)}))
     @ApiResponse(responseCode = "401", description = "Sin token o token inválido",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = {
+                            @ExampleObject(name = "EQUIPOS_PAGINADO_SIN_TOKEN", summary = "Sin token", value = EjemplosError.EQUIPOS_PAGINADO_SIN_TOKEN),
+                            @ExampleObject(name = "EQUIPOS_PAGINADO_TOKEN_INVALIDO", summary = "Token inválido", value = EjemplosError.EQUIPOS_PAGINADO_TOKEN_INVALIDO)}))
     @GetMapping("/paginado")
     public ResponseEntity<PageResponse<EquipoResponse>> paginado(
             @Parameter(description = "Número de página, empieza en 0", example = "0")
@@ -86,7 +102,9 @@ public class EquipoController {
     @Operation(summary = "Obtener un equipo")
     @ApiResponse(responseCode = "200", description = "Equipo encontrado")
     @ApiResponse(responseCode = "404", description = "El equipo no existe",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_NO_ENCONTRADO", summary = "Equipo inexistente", value = EjemplosError.EQUIPO_NO_ENCONTRADO)))
     @GetMapping("/{id}")
     public ResponseEntity<Equipo> show(@Parameter(description = "ID del equipo", example = "1") @PathVariable Long id) {
         return ResponseEntity.ok(equipoService.buscar(id));
@@ -96,11 +114,17 @@ public class EquipoController {
     @Operation(summary = "Registrar un equipo (ADMIN)")
     @ApiResponse(responseCode = "201", description = "Equipo creado; el header Location apunta al nuevo recurso")
     @ApiResponse(responseCode = "400", description = "Datos inválidos (detalle por campo en 'errores')",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_DATOS_INVALIDOS", summary = "Campos inválidos", value = EjemplosError.EQUIPO_DATOS_INVALIDOS)))
     @ApiResponse(responseCode = "403", description = "El rol no es ADMIN",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPOS_SIN_PERMISO", summary = "Usuario ENCARGADO", value = EjemplosError.EQUIPOS_SIN_PERMISO)))
     @ApiResponse(responseCode = "409", description = "Ya existe un equipo con ese código",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_CODIGO_DUPLICADO", summary = "Código duplicado", value = EjemplosError.EQUIPO_CODIGO_DUPLICADO)))
     @PostMapping
     public ResponseEntity<Equipo> create(@Valid @RequestBody EquipoRequest request) {
         Equipo creado = equipoService.crear(request);
@@ -114,13 +138,25 @@ public class EquipoController {
             description = "Conserva las unidades prestadas: la cantidad total no puede ser menor que ellas.")
     @ApiResponse(responseCode = "200", description = "Equipo actualizado")
     @ApiResponse(responseCode = "400", description = "Datos inválidos o cantidad menor a las unidades prestadas",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = {
+                            @ExampleObject(name = "EQUIPO_PUT_DATOS_INVALIDOS", summary = "Campos inválidos", value = EjemplosError.EQUIPO_PUT_DATOS_INVALIDOS),
+                            @ExampleObject(name = "EQUIPO_CANTIDAD_MENOR_A_PRESTADAS", summary = "Cantidad menor a las prestadas", value = EjemplosError.EQUIPO_CANTIDAD_MENOR_A_PRESTADAS)}))
     @ApiResponse(responseCode = "403", description = "El rol no es ADMIN",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_SIN_PERMISO", summary = "Usuario ENCARGADO", value = EjemplosError.EQUIPO_SIN_PERMISO)))
     @ApiResponse(responseCode = "404", description = "El equipo no existe",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_NO_ENCONTRADO", summary = "Equipo inexistente", value = EjemplosError.EQUIPO_NO_ENCONTRADO)))
     @ApiResponse(responseCode = "409", description = "Código duplicado o modificación simultánea (bloqueo optimista)",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = {
+                            @ExampleObject(name = "EQUIPO_PUT_CODIGO_DUPLICADO", summary = "Código duplicado", value = EjemplosError.EQUIPO_PUT_CODIGO_DUPLICADO),
+                            @ExampleObject(name = "EQUIPO_MODIFICACION_SIMULTANEA", summary = "Bloqueo optimista", value = EjemplosError.EQUIPO_MODIFICACION_SIMULTANEA)}))
     @PutMapping("/{id}")
     public ResponseEntity<Equipo> update(@Parameter(description = "ID del equipo", example = "1") @PathVariable Long id,
                                          @Valid @RequestBody EquipoRequest request) {
@@ -132,11 +168,17 @@ public class EquipoController {
             description = "No se elimina si tiene préstamos registrados: en ese caso cambie su estado a DE_BAJA.")
     @ApiResponse(responseCode = "204", description = "Equipo eliminado")
     @ApiResponse(responseCode = "403", description = "El rol no es ADMIN",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_SIN_PERMISO", summary = "Usuario ENCARGADO", value = EjemplosError.EQUIPO_SIN_PERMISO)))
     @ApiResponse(responseCode = "404", description = "El equipo no existe",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_NO_ENCONTRADO", summary = "Equipo inexistente", value = EjemplosError.EQUIPO_NO_ENCONTRADO)))
     @ApiResponse(responseCode = "409", description = "El equipo tiene préstamos registrados",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "EQUIPO_CON_PRESTAMOS", summary = "Tiene préstamos registrados", value = EjemplosError.EQUIPO_CON_PRESTAMOS)))
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@Parameter(description = "ID del equipo", example = "1") @PathVariable Long id) {
         equipoService.eliminar(id);

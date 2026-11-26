@@ -1,5 +1,6 @@
 package com.proyecto.upn.controller;
 
+import com.proyecto.upn.config.EjemplosError;
 import com.proyecto.upn.dto.ErrorResponse;
 import com.proyecto.upn.dto.RegistroRequest;
 import com.proyecto.upn.dto.UsuarioResponse;
@@ -7,12 +8,14 @@ import com.proyecto.upn.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,7 +26,7 @@ import java.util.List;
 /** Administración de usuarios del sistema (solo rol ADMIN). */
 @Tag(name = "Usuarios", description = "Gestión de usuarios del sistema (solo ADMIN)")
 @RestController
-@RequestMapping("/api/usuarios")
+@RequestMapping(path = "/api/usuarios", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class UsuarioController {
@@ -33,7 +36,9 @@ public class UsuarioController {
     @Operation(summary = "Listar usuarios")
     @ApiResponse(responseCode = "200", description = "Lista de usuarios")
     @ApiResponse(responseCode = "403", description = "El rol no es ADMIN",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "USUARIOS_SIN_PERMISO", summary = "Usuario ENCARGADO", value = EjemplosError.USUARIOS_SIN_PERMISO)))
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> index() {
         return ResponseEntity.ok(authService.listar());
@@ -42,9 +47,13 @@ public class UsuarioController {
     @Operation(summary = "Crear un usuario")
     @ApiResponse(responseCode = "201", description = "Usuario creado")
     @ApiResponse(responseCode = "400", description = "Datos inválidos",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "USUARIO_DATOS_INVALIDOS", summary = "Campos inválidos", value = EjemplosError.USUARIO_DATOS_INVALIDOS)))
     @ApiResponse(responseCode = "409", description = "El nombre de usuario ya existe",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "USUARIO_DUPLICADO", summary = "Usuario duplicado", value = EjemplosError.USUARIO_DUPLICADO)))
     @PostMapping
     public ResponseEntity<UsuarioResponse> create(@Valid @RequestBody RegistroRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registrar(request));
@@ -54,7 +63,9 @@ public class UsuarioController {
     @Operation(summary = "Desactivar un usuario", description = "Borrado lógico; no puede desactivarse a sí mismo.")
     @ApiResponse(responseCode = "204", description = "Usuario desactivado")
     @ApiResponse(responseCode = "404", description = "El usuario no existe",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "USUARIO_NO_ENCONTRADO", summary = "Usuario inexistente", value = EjemplosError.USUARIO_NO_ENCONTRADO)))
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@Parameter(description = "ID del usuario", example = "2") @PathVariable Long id,
                                        @Parameter(hidden = true) Authentication auth) {
