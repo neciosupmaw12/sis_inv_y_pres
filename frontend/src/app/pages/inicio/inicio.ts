@@ -7,7 +7,7 @@ import { SolicitanteService } from '../../core/services/solicitante.service';
 import { PrestamoService } from '../../core/services/prestamo.service';
 import { Auth } from '../../core/services/auth';
 import { PanelService } from '../../core/services/panel.service';
-import { Equipo, PanelResumen, Prestamo, Solicitante } from '../../core/models';
+import { CLASE_ESTADO_PRESTAMO, Equipo, PanelResumen, Prestamo, Solicitante } from '../../core/models';
 import { Disponibilidad } from '../../shared/disponibilidad';
 import { EtiquetaPipe } from '../../shared/etiqueta-pipe';
 
@@ -35,15 +35,18 @@ export class Inicio implements OnInit {
   protected readonly unidadesDisponibles = computed(() => this.panel()?.unidadesDisponibles ?? 0);
   protected readonly activos = computed(() => this.panel()?.prestamos.activos ?? 0);
   protected readonly vencidos = computed(() => this.panel()?.prestamos.vencidos ?? 0);
+  protected readonly pendientes = computed(() => this.panel()?.prestamos.pendientes ?? 0);
+  protected readonly rechazados = computed(() => this.panel()?.prestamos.rechazados ?? 0);
+  protected readonly claseEstado = CLASE_ESTADO_PRESTAMO;
   /** Para la barra del top: el equipo más prestado ocupa el 100 %. */
   protected readonly maximoPrestado = computed(() =>
     Math.max(1, ...(this.panel()?.topEquipos ?? []).map((e) => e.unidadesPrestadas)),
   );
 
-  /** Préstamos sin devolver, primero los que vencen antes. */
+  /** Préstamos entregados sin devolver (no solicitudes), primero los que vencen antes. */
   protected readonly porDevolver = computed(() =>
     this.prestamos()
-      .filter((p) => p.estado !== 'DEVUELTO')
+      .filter((p) => p.estado === 'ACTIVO' || p.estado === 'VENCIDO')
       .sort((a, b) => a.fechaDevolucionPrevista.localeCompare(b.fechaDevolucionPrevista))
       .slice(0, 6),
   );

@@ -116,14 +116,33 @@
         </h2>
         <div class="mt-1">Solicitante: <strong>{{ d.solicitante }}</strong> ({{ d.tipoSolicitante | etiqueta }})</div>
         <small class="text-secondary">
-          Prestado el {{ d.fechaPrestamo | date: 'medium' }} por {{ d.registradoPor }} · Devolver hasta
-          {{ d.fechaDevolucionPrevista | date: 'longDate' }}
+          @if (d.fechaSolicitud) {
+            Solicitado por el alumno el {{ d.fechaSolicitud | date: 'medium' }}
+            @if (entregado(d) || d.estado === 'DEVUELTO') {
+              · Prestado el {{ d.fechaPrestamo | date: 'medium' }}
+            }
+          } @else {
+            Prestado el {{ d.fechaPrestamo | date: 'medium' }} por {{ d.registradoPor }}
+          }
+          · Devolver hasta {{ d.fechaDevolucionPrevista | date: 'longDate' }}
           @if (d.fechaDevolucionReal) {
             · Devuelto el {{ d.fechaDevolucionReal | date: 'medium' }}
           }
         </small>
+        @if (d.aprobadoPor) {
+          <div class="mt-1 small">
+            <i class="bi" [class]="d.estado === 'RECHAZADO' ? 'bi-x-octagon text-danger' : 'bi-check2-circle text-success'"></i>
+            {{ d.estado === 'RECHAZADO' ? 'Rechazado' : 'Aprobado' }} por {{ d.aprobadoPor }} el
+            {{ d.fechaAprobacion | date: 'medium' }}
+          </div>
+        }
+        @if (d.motivoRechazo) {
+          <div class="mt-1 text-danger"><i class="bi bi-chat-left-text"></i> Motivo del rechazo: {{ d.motivoRechazo }}</div>
+        }
         @if (d.observaciones) {
-          <div class="mt-1"><i class="bi bi-chat-left-text"></i> {{ d.observaciones }}</div>
+          <div class="mt-1">
+            <i class="bi bi-chat-left-text"></i> {{ d.fechaSolicitud ? 'Motivo de la solicitud:' : '' }} {{ d.observaciones }}
+          </div>
         }
       </div>
       <button type="button" class="btn-close" aria-label="Cerrar" (click)="detalle.set(null)"></button>
@@ -159,7 +178,13 @@
           @if (contar(f) !== null) {
             <span
               class="badge rounded-pill"
-              [ngClass]="filtroActual() === f ? 'text-bg-light' : f === 'VENCIDO' ? 'text-bg-danger' : 'text-bg-secondary'"
+              [ngClass]="
+                filtroActual() === f
+                  ? 'text-bg-light'
+                  : (f === 'VENCIDO' || f === 'PENDIENTE') && contar(f)
+                    ? claseEstado(f)
+                    : 'text-bg-secondary'
+              "
               >{{ contar(f) }}</span
             >
           }
@@ -211,7 +236,11 @@
         </thead>
         <tbody>
           @for (p of listado.pagina()?.content ?? []; track p.id) {
-            <tr [class.table-danger]="p.estado === 'VENCIDO'" [class.table-active]="detalle()?.id === p.id || editandoId() === p.id">
+            <tr
+              [class.table-danger]="p.estado === 'VENCIDO'"
+              [class.table-warning]="p.estado === 'PENDIENTE'"
+              [class.table-active]="detalle()?.id === p.id || editandoId() === p.id"
+            >
               <td>{{ p.id }}</td>
               <td>
                 <div class="fw-semibold">{{ p.solicitante }}</div>
@@ -226,14 +255,15 @@
                   <button class="btn btn-sm btn-outline-secondary" title="Ver detalle" (click)="ver(p)">
                     <i class="bi bi-eye"></i>
                   </button>
-                  @if (p.estado !== 'DEVUELTO') {
+                  <!-- Devolver y editar: solo préstamos entregados (no solicitudes pendientes, rechazadas o canceladas) -->
+                  @if (entregado(p)) {
                     <button class="btn btn-sm btn-outline-success" title="Registrar devolución" (click)="devolver(p)">
                       <i class="bi bi-box-arrow-in-down"></i>
                     </button>
                   }
                   <!-- Editar y anular: solo administrador -->
                   @if (auth.esAdmin()) {
-                    @if (p.estado !== 'DEVUELTO') {
+                    @if (entregado(p)) {
                       <button class="btn btn-sm btn-outline-primary" title="Editar" (click)="editar(p)">
                         <i class="bi bi-pencil"></i>
                       </button>

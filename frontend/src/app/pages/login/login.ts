@@ -26,7 +26,7 @@ export class Login {
 
   constructor() {
     if (this.auth.autenticado()) {
-      this.router.navigate(['/inicio']);
+      this.router.navigateByUrl(this.auth.rutaInicio());
     }
   }
 
@@ -39,7 +39,8 @@ export class Login {
     this.error.set(null);
     const { username, password } = this.form.getRawValue();
     this.auth.login(username, password).subscribe({
-      next: () => this.router.navigate(['/inicio']),
+      // Cada rol entra a su propia pantalla de inicio (el alumno a /mi-inicio)
+      next: () => this.router.navigateByUrl(this.auth.rutaInicio()),
       error: (err: HttpErrorResponse) => {
         this.error.set(leerError(err).mensaje);
         this.cargando.set(false);

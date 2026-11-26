@@ -9,7 +9,9 @@ import { PrestamoService } from '../../core/services/prestamo.service';
 import { leerError } from '../../core/services/http-error';
 import { Auth } from '../../core/services/auth';
 import {
+  CLASE_ESTADO_PRESTAMO,
   ConteoPrestamos,
+  contarEstado,
   Equipo,
   EstadoPrestamo,
   FiltrosPrestamo,
@@ -45,7 +47,7 @@ export class Prestamos implements OnInit {
   protected readonly auth = inject(Auth);
 
   protected readonly hoy = fechaLocal();
-  protected readonly filtros: Filtro[] = ['TODOS', 'ACTIVO', 'VENCIDO', 'DEVUELTO'];
+  protected readonly filtros: Filtro[] = ['TODOS', 'PENDIENTE', 'ACTIVO', 'VENCIDO', 'DEVUELTO', 'RECHAZADO', 'CANCELADO'];
 
   /** Historial paginado desde Spring Boot (GET /api/prestamos/paginado); filtro, búsqueda y página en la URL. */
   protected readonly listado = new ListadoPaginado<FiltrosPrestamo, Prestamo>(
@@ -113,8 +115,12 @@ export class Prestamos implements OnInit {
 
   contar(f: Filtro): number | null {
     const c = this.conteo();
-    if (!c) return null;
-    return { TODOS: c.total, ACTIVO: c.activos, VENCIDO: c.vencidos, DEVUELTO: c.devueltos }[f];
+    return c ? contarEstado(c, f) : null;
+  }
+
+  /** Solo un préstamo entregado (ACTIVO, o VENCIDO que sigue activo) se puede devolver o editar. */
+  entregado(p: Prestamo): boolean {
+    return p.estado === 'ACTIVO' || p.estado === 'VENCIDO';
   }
 
   nuevaLinea(equipoId: number | null = null, cantidad = 1) {
@@ -234,7 +240,7 @@ export class Prestamos implements OnInit {
   }
 
   claseEstado(estado: EstadoPrestamo): string {
-    return { ACTIVO: 'text-bg-primary', VENCIDO: 'text-bg-danger', DEVUELTO: 'text-bg-success' }[estado];
+    return CLASE_ESTADO_PRESTAMO[estado];
   }
 
   private notificar(tipo: 'success' | 'danger', texto: string): void {

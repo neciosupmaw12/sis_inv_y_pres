@@ -18,13 +18,19 @@ export class Auth {
   readonly usuario = this._usuario.asReadonly();
   readonly autenticado = computed(() => this._usuario() !== null);
   readonly esAdmin = computed(() => this._usuario()?.rol === 'ADMIN');
+  readonly esAlumno = computed(() => this._usuario()?.rol === 'ALUMNO');
 
   login(username: string, password: string): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${environment.apiUrl}/auth/login`, { username, password })
       .pipe(
         tap((res) => {
-          const usuario: Usuario = { username: res.username, nombre: res.nombre, rol: res.rol };
+          const usuario: Usuario = {
+            username: res.username,
+            nombre: res.nombre,
+            rol: res.rol,
+            solicitanteId: res.solicitanteId ?? null,
+          };
           localStorage.setItem(TOKEN_KEY, res.token);
           localStorage.setItem(USER_KEY, JSON.stringify(usuario));
           this._usuario.set(usuario);
@@ -46,6 +52,12 @@ export class Auth {
   tieneRol(roles: Rol[]): boolean {
     const rol = this._usuario()?.rol;
     return !!rol && roles.includes(rol);
+  }
+
+  /** Pantalla de inicio de cada rol: el alumno tiene la suya; ADMIN y ENCARGADO, el panel. */
+  rutaInicio(): string {
+    if (!this.autenticado()) return '/login';
+    return this.esAlumno() ? '/mi-inicio' : '/inicio';
   }
 
   private leerUsuario(): Usuario | null {

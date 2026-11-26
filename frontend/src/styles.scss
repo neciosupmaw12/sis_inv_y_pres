@@ -114,6 +114,18 @@ body {
   font-size: 0.8rem;
 }
 
+// ---------- Badges propios (estados de préstamo y roles) ----------
+// VENCIDO en naranja para distinguirlo de RECHAZADO (rojo); ALUMNO en morado, distinto de ADMIN y ENCARGADO
+.text-bg-vencido {
+  color: #fff !important;
+  background-color: #ea580c !important;
+}
+
+.text-bg-alumno {
+  color: #fff !important;
+  background-color: #7c3aed !important;
+}
+
 // En pantallas pequeñas la tabla se desplaza horizontalmente en lugar de apretar las columnas
 @include m.movil {
   .contenedor-tabla .table {

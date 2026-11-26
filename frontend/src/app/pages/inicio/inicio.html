@@ -35,12 +35,20 @@
         <small>{{ panel()?.unidadesPrestadas ?? 0 }} unidades prestadas · {{ panel()?.prestamos?.total ?? 0 }} en el historial</small>
       </div>
     </a>
-    <a class="indicador vencidos" routerLink="/prestamos">
+    <a class="indicador vencidos" routerLink="/prestamos" [queryParams]="{ estado: 'VENCIDO' }">
       <i class="bi bi-exclamation-triangle"></i>
       <div>
         <span>Préstamos vencidos</span>
         <strong>{{ vencidos() }}</strong>
         <small>{{ vencidos() > 0 ? 'Requieren seguimiento' : 'Todo al día' }}</small>
+      </div>
+    </a>
+    <a class="indicador pendientes" routerLink="/prestamos" [queryParams]="{ estado: 'PENDIENTE' }">
+      <i class="bi bi-hourglass-split"></i>
+      <div>
+        <span>Solicitudes de alumnos pendientes</span>
+        <strong>{{ pendientes() }}</strong>
+        <small>{{ rechazados() }} rechazada(s) · {{ panel()?.prestamos?.cancelados ?? 0 }} cancelada(s)</small>
       </div>
     </a>
   </section>
@@ -55,7 +63,7 @@
             <small class="text-secondary">#{{ p.id }} · {{ p.totalEquipos }} equipo(s) · {{ p.tipoSolicitante | etiqueta }}</small>
           </div>
           <div class="text-end">
-            <span class="badge" [ngClass]="p.estado === 'VENCIDO' ? 'text-bg-danger' : 'text-bg-primary'">{{ p.estado | etiqueta }}</span>
+            <span class="badge" [ngClass]="claseEstado[p.estado]">{{ p.estado | etiqueta }}</span>
             <div><small class="text-secondary">hasta {{ p.fechaDevolucionPrevista | date: 'mediumDate' }}</small></div>
           </div>
         </div>

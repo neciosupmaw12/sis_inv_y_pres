@@ -8,6 +8,7 @@ $colores: (
   disponibles: v.$success,
   activos: v.$info,
   vencidos: v.$danger,
+  pendientes: v.$warning,
 );
 
 .indicadores {
