@@ -100,18 +100,24 @@ DROP TABLE IF EXISTS `prestamos`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `prestamos` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `estado` enum('ACTIVO','DEVUELTO') NOT NULL,
+  `estado` varchar(20) NOT NULL,
   `fecha_devolucion_prevista` date NOT NULL,
   `fecha_devolucion_real` datetime(6) DEFAULT NULL,
   `fecha_prestamo` datetime(6) NOT NULL,
   `observaciones` varchar(255) DEFAULT NULL,
   `usuario_id` bigint(20) NOT NULL,
   `solicitante_id` bigint(20) NOT NULL,
+  `fecha_aprobacion` datetime(6) DEFAULT NULL,
+  `fecha_solicitud` datetime(6) DEFAULT NULL,
+  `motivo_rechazo` varchar(255) DEFAULT NULL,
+  `aprobado_por_id` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `FKeqd1t799y0x5ck9mdeltepy1w` (`usuario_id`),
   KEY `FKt4q0sp8cb3gjh0wtkt3fnkbbf` (`solicitante_id`),
   KEY `idx_prestamos_estado_fecha_prevista` (`estado`,`fecha_devolucion_prevista`),
   KEY `idx_prestamos_fecha_prestamo` (`fecha_prestamo`),
+  KEY `FK2dc7vb4bg0fwu19ndyw9wp6xr` (`aprobado_por_id`),
+  CONSTRAINT `FK2dc7vb4bg0fwu19ndyw9wp6xr` FOREIGN KEY (`aprobado_por_id`) REFERENCES `usuarios` (`id`),
   CONSTRAINT `FKeqd1t799y0x5ck9mdeltepy1w` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`),
   CONSTRAINT `FKt4q0sp8cb3gjh0wtkt3fnkbbf` FOREIGN KEY (`solicitante_id`) REFERENCES `solicitantes` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -123,7 +129,7 @@ CREATE TABLE `prestamos` (
 
 LOCK TABLES `prestamos` WRITE;
 /*!40000 ALTER TABLE `prestamos` DISABLE KEYS */;
-INSERT INTO `prestamos` VALUES (2,'DEVUELTO','2026-11-09','2026-11-02 16:50:43.000000','2026-11-02 16:09:39.000000','laboratorio 305 , clase redes 2.',1,3),(3,'DEVUELTO','2026-11-09','2026-11-02 17:17:59.000000','2026-11-02 17:17:08.000000',NULL,1,3),(4,'ACTIVO','2026-11-09',NULL,'2026-11-02 17:17:41.000000','LAB 230 - REDES 2',1,1),(6,'ACTIVO','2026-11-17',NULL,'2026-11-10 21:59:29.000000','clase de soluciones web',1,4);
+INSERT INTO `prestamos` VALUES (2,'DEVUELTO','2026-11-09','2026-11-02 16:50:43.000000','2026-11-02 16:09:39.000000','laboratorio 305 , clase redes 2.',1,3,NULL,NULL,NULL,NULL),(3,'DEVUELTO','2026-11-09','2026-11-02 17:17:59.000000','2026-11-02 17:17:08.000000',NULL,1,3,NULL,NULL,NULL,NULL),(4,'ACTIVO','2026-11-09',NULL,'2026-11-02 17:17:41.000000','LAB 230 - REDES 2',1,1,NULL,NULL,NULL,NULL),(6,'ACTIVO','2026-11-17',NULL,'2026-11-10 21:59:29.000000','clase de soluciones web',1,4,NULL,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `prestamos` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -148,7 +154,7 @@ CREATE TABLE `solicitantes` (
   UNIQUE KEY `UKm4kus3ttihn008k8tpiuqrh5w` (`email`),
   KEY `idx_solicitantes_apellidos_nombres` (`apellidos`,`nombres`),
   KEY `idx_solicitantes_tipo` (`tipo`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -157,7 +163,7 @@ CREATE TABLE `solicitantes` (
 
 LOCK TABLES `solicitantes` WRITE;
 /*!40000 ALTER TABLE `solicitantes` DISABLE KEYS */;
-INSERT INTO `solicitantes` VALUES (1,'Quispe Torres','Ingeniería de Sistemas','70123456','maria.quispe@upn.pe','María','987654321','ESTUDIANTE'),(2,'Ramírez Soto','Facultad de Ingeniería','45678912','carlos.ramirez@upn.pe','Carlos','912345678','DOCENTE'),(3,'perez','ing sistemas','87654321','n00123546@upn.pe','juan','987654321','ESTUDIANTE'),(4,'perez','ing sistemas','87654320','sistemas@sistemas.com','juancito','987654321','ESTUDIANTE');
+INSERT INTO `solicitantes` VALUES (1,'Quispe Torres','Ingeniería de Sistemas','70123456','maria.quispe@upn.pe','María','987654321','ESTUDIANTE'),(2,'Ramírez Soto','Facultad de Ingeniería','45678912','carlos.ramirez@upn.pe','Carlos','912345678','DOCENTE'),(3,'perez','ing sistemas','87654321','n00123546@upn.pe','juan','987654321','ESTUDIANTE'),(4,'perez','ing sistemas','87654320','sistemas@sistemas.com','juancito','987654321','ESTUDIANTE'),(6,'Prueba UPN','Ingeniería de Sistemas','71234567','alumno.prueba@upn.pe','Alumno','951234567','ESTUDIANTE');
 /*!40000 ALTER TABLE `solicitantes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -173,11 +179,14 @@ CREATE TABLE `usuarios` (
   `activo` bit(1) NOT NULL,
   `nombre` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `rol` enum('ADMIN','ENCARGADO') NOT NULL,
+  `rol` varchar(20) NOT NULL,
   `username` varchar(50) NOT NULL,
+  `solicitante_id` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `UKm2dvbwfge291euvmk6vkkocao` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `UKm2dvbwfge291euvmk6vkkocao` (`username`),
+  UNIQUE KEY `UK9wxv42qa4lal44ef3fa3w4mxp` (`solicitante_id`),
+  CONSTRAINT `FKkejbc2qaq0jnwaraf2ff1a38e` FOREIGN KEY (`solicitante_id`) REFERENCES `solicitantes` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -186,7 +195,7 @@ CREATE TABLE `usuarios` (
 
 LOCK TABLES `usuarios` WRITE;
 /*!40000 ALTER TABLE `usuarios` DISABLE KEYS */;
-INSERT INTO `usuarios` VALUES (1,'','Administrador','$2a$10$08ey8TTs/0P6aX6h.PhK5OFw45s0o9kjpQ9lAHjowmi/7t1oewofG','ADMIN','admin'),(2,'','Encargado de Préstamos','$2a$10$PsYA4h4JKhgFUCcT5JnMRubE15lD9WxbXXD69EQinoDBs8EuC.7FG','ENCARGADO','encargado'),(3,'','Leslie Fernández Toro','$2a$10$Vp.MXYq5Ba4rav4Kj2.ROO54a4kgUZrzxFvFaz7ufmDkEdwhZcwOS','ADMIN','lfernandez'),(4,'','Rodolfo Quispe Quispe','$2a$10$L2rmf9fxh.gzDLJk5KFMOu1XlZsaWSd0JMo.hs9RZdmG02uOhnycG','ADMIN','rquispe'),(5,'','Marco Neciosup Panibra','$2a$10$VF2/6zYGQin0hj41kcsmBORL4UbC6KZPpV8E/XvMkS/mEMFtZvUTO','ADMIN','mneciosup'),(6,'','Nelson Raúl Troncos Pintado','$2a$10$3g0vDOgb.pV.4mXtPo8Pyu/77NE8git.mNmVVI92L595XYQzxhLXC','ADMIN','ntroncos'),(7,'','Juan Carlos Morales Rojas','$2a$10$tedMKBesjGPv3sgYl.nXce.QXkvWWLdRbxb6mwt9SucMG25ApuSTW','ADMIN','jmorales');
+INSERT INTO `usuarios` VALUES (1,'','Administrador','$2a$10$08ey8TTs/0P6aX6h.PhK5OFw45s0o9kjpQ9lAHjowmi/7t1oewofG','ADMIN','admin',NULL),(2,'','Encargado de Préstamos','$2a$10$PsYA4h4JKhgFUCcT5JnMRubE15lD9WxbXXD69EQinoDBs8EuC.7FG','ENCARGADO','encargado',NULL),(3,'','Leslie Fernández Toro','$2a$10$Vp.MXYq5Ba4rav4Kj2.ROO54a4kgUZrzxFvFaz7ufmDkEdwhZcwOS','ADMIN','lfernandez',NULL),(4,'','Rodolfo Quispe Quispe','$2a$10$L2rmf9fxh.gzDLJk5KFMOu1XlZsaWSd0JMo.hs9RZdmG02uOhnycG','ADMIN','rquispe',NULL),(5,'','Marco Neciosup Panibra','$2a$10$VF2/6zYGQin0hj41kcsmBORL4UbC6KZPpV8E/XvMkS/mEMFtZvUTO','ADMIN','mneciosup',NULL),(6,'','Nelson Raúl Troncos Pintado','$2a$10$3g0vDOgb.pV.4mXtPo8Pyu/77NE8git.mNmVVI92L595XYQzxhLXC','ADMIN','ntroncos',NULL),(7,'','Juan Carlos Morales Rojas','$2a$10$tedMKBesjGPv3sgYl.nXce.QXkvWWLdRbxb6mwt9SucMG25ApuSTW','ADMIN','jmorales',NULL),(8,'','Alumno Prueba UPN','$2a$10$K2NTlWNT8bMiL8x/0LdSvulVa/TOJLvj8lk2HJ3vpljgW2yajqbOu','ALUMNO','alumno',6);
 /*!40000 ALTER TABLE `usuarios` ENABLE KEYS */;
 UNLOCK TABLES;
 
