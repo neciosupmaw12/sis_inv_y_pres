@@ -211,7 +211,7 @@ cd upn
 ```
 
 Usan el perfil `test` (`src/test/resources/application-test.properties`) con una base **separada**, `upn_inventario_test`,
-que se crea sola: no modifican los datos de `upn_inventario`. El reporte queda en `upn/target/surefire-reports/`. Son 14:
+que se crea sola: no modifican los datos de `upn_inventario`. El reporte queda en `upn/target/surefire-reports/`. Son 15:
 
 - `PrestamoTransaccionTest`: préstamo exitoso, **rollback** por falta de stock y por equipo no operativo, devolución,
   paginación y bloqueo optimista.
@@ -221,6 +221,7 @@ que se crea sola: no modifican los datos de `upn_inventario`. El reporte queda e
   3. aprobación sin stock suficiente → **409 con rollback** (stock y estado sin cambios);
   4. rechazo → RECHAZADO, stock igual y motivo guardado;
   5. el alumno recibe **403** al aprobar, ver o cancelar préstamos ajenos y entrar a `/api/usuarios`;
+     y el **encargado** recibe **403** al aprobar o rechazar (la solicitud sigue PENDIENTE y el stock no cambia);
   6. alumno con un DNI ya vinculado → **409** sin usuario ni solicitante nuevos; y si el usuario está duplicado, el
      rollback borra también el estudiante que se había insertado.
 

@@ -50,6 +50,7 @@ class SolicitudAlumnoTest {
     @Autowired private PrestamoRepository prestamoRepository;
 
     private String tokenAdmin;
+    private String tokenEncargado;
     private String tokenAlumno;
     private Long solicitanteAlumno;
 
@@ -59,6 +60,8 @@ class SolicitudAlumnoTest {
         solicitanteAlumno = alumno.getSolicitante().getId();
         tokenAlumno = jwtService.generarToken(alumno);
         tokenAdmin = jwtService.generarToken(usuarioRepository.findWithSolicitanteByUsername("admin").orElseThrow());
+        tokenEncargado = jwtService.generarToken(
+                usuarioRepository.findWithSolicitanteByUsername("encargado").orElseThrow());
     }
 
     @AfterEach
@@ -173,6 +176,32 @@ class SolicitudAlumnoTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[*].id").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(ajeno.intValue()))));
         assertThat(estado(propia)).isEqualTo(EstadoPrestamo.PENDIENTE);
+    }
+
+    @Test
+    @DisplayName("5b. El encargado no puede aprobar ni rechazar (403): la solicitud sigue PENDIENTE y el stock igual")
+    void encargadoNoApruebaNiRechaza() throws Exception {
+        Equipo laptop = equipo("TSA-LAP", 5);
+        Long id = solicitar(linea(laptop, 2)).andReturnIdFrom();
+
+        perform(put("/api/prestamos/" + id + "/aprobar"), tokenEncargado)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para realizar esta operación"));
+        perform(put("/api/prestamos/" + id + "/rechazar").content("{\"motivo\":\"No hay laptops esa semana\"}"),
+                tokenEncargado)
+                .andExpect(status().isForbidden());
+
+        // Nada cambió: ni el estado, ni quién la atendió, ni el motivo, ni el stock
+        assertThat(disponibles(laptop)).isEqualTo(5);
+        Prestamo p = prestamoRepository.findWithDetallesById(id).orElseThrow();
+        assertThat(p.getEstado()).isEqualTo(EstadoPrestamo.PENDIENTE);
+        assertThat(p.getAprobadoPor()).isNull();
+        assertThat(p.getMotivoRechazo()).isNull();
+
+        // Sí puede consultarla (solo lectura) en el listado de préstamos
+        perform(get("/api/prestamos/paginado?estado=PENDIENTE&size=50"), tokenEncargado)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[*].id").value(org.hamcrest.Matchers.hasItem(id.intValue())));
     }
 
     @Test
