@@ -13,14 +13,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "Panel", description = "Indicadores del panel de inicio")
+@Tag(name = "Panel", description = "Indicadores globales del panel de inicio (ADMIN y ENCARGADO; el alumno usa "
+        + "/api/prestamos/mis-prestamos/resumen)")
 @RestController
 @RequestMapping(path = "/api/panel", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADO')")
 public class PanelController {
 
     private final PanelService panelService;

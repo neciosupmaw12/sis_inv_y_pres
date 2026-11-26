@@ -21,6 +21,7 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -28,10 +29,12 @@ import java.net.URI;
 import java.util.List;
 
 @Tag(name = "Equipos", description = "Inventario de equipos tecnológicos (equivale a \"productos\"). "
-        + "Consultar: ADMIN y ENCARGADO · Registrar, editar y eliminar: solo ADMIN")
+        + "Consultar: ADMIN y ENCARGADO · Registrar, editar y eliminar: solo ADMIN · "
+        + "ALUMNO: solo /disponibles y /catalogo (equipos OPERATIVOS con stock)")
 @RestController
 @RequestMapping(path = "/api/equipos", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADO')")
 public class EquipoController {
 
     private final EquipoService equipoService;
@@ -90,12 +93,40 @@ public class EquipoController {
     }
 
     /** GET /api/equipos/disponibles → 200 */
-    @Operation(summary = "Equipos disponibles para préstamo",
-            description = "Consulta JPQL: equipos en estado OPERATIVO con cantidadDisponible > 0.")
+    @Operation(summary = "Equipos disponibles para préstamo (ADMIN, ENCARGADO y ALUMNO)",
+            description = "Consulta JPQL: equipos en estado OPERATIVO con cantidadDisponible > 0. La usa el formulario "
+                    + "\"Solicitar préstamo\" del alumno.")
     @ApiResponse(responseCode = "200", description = "Equipos prestables")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADO', 'ALUMNO')")
     @GetMapping("/disponibles")
     public ResponseEntity<List<EquipoResponse>> disponibles() {
         return ResponseEntity.ok(equipoService.listarPrestables());
+    }
+
+    /** GET /api/equipos/catalogo?page=0&size=12&sort=nombre,asc&busqueda=&categoria= → 200 | 400 */
+    @Operation(summary = "Catálogo de equipos disponibles, paginado (ADMIN, ENCARGADO y ALUMNO)",
+            description = "Solo equipos OPERATIVOS con stock > 0, con búsqueda por nombre, código o marca y filtro de "
+                    + "categoría. Mismos campos de orden que /paginado.")
+    @ApiResponse(responseCode = "200", description = "Página del catálogo")
+    @ApiResponse(responseCode = "400", description = "page < 0, size fuera de 1..50 o campo de orden no permitido",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = ErrorResponse.class),
+                    examples = @ExampleObject(name = "CATALOGO_SIZE_INVALIDO", summary = "size mayor a 50", value = EjemplosError.CATALOGO_SIZE_INVALIDO)))
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADO', 'ALUMNO')")
+    @GetMapping("/catalogo")
+    public ResponseEntity<PageResponse<EquipoResponse>> catalogo(
+            @Parameter(description = "Número de página, empieza en 0", example = "0")
+            @RequestParam(defaultValue = "0") @Min(value = 0, message = "page debe ser mayor o igual a 0") Integer page,
+            @Parameter(description = "Registros por página (máximo 50)", example = "12")
+            @RequestParam(defaultValue = "12") @Min(value = 1, message = "size debe ser al menos 1")
+            @Max(value = 50, message = "size no puede ser mayor a 50") Integer size,
+            @Parameter(description = "Orden: campo,asc|desc", example = "nombre,asc")
+            @RequestParam(defaultValue = EquipoService.ORDEN_POR_DEFECTO) String sort,
+            @Parameter(description = "Texto a buscar en nombre, código o marca", example = "laptop")
+            @RequestParam(required = false) String busqueda,
+            @Parameter(description = "Filtro por categoría exacta", example = "Laptops")
+            @RequestParam(required = false) String categoria) {
+        return ResponseEntity.ok(equipoService.catalogo(page, size, sort, busqueda, categoria));
     }
 
     /** GET /api/equipos/{id} → 200 | 404 */
@@ -125,6 +156,7 @@ public class EquipoController {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class),
                     examples = @ExampleObject(name = "EQUIPO_CODIGO_DUPLICADO", summary = "Código duplicado", value = EjemplosError.EQUIPO_CODIGO_DUPLICADO)))
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Equipo> create(@Valid @RequestBody EquipoRequest request) {
         Equipo creado = equipoService.crear(request);
@@ -157,6 +189,7 @@ public class EquipoController {
                     examples = {
                             @ExampleObject(name = "EQUIPO_PUT_CODIGO_DUPLICADO", summary = "Código duplicado", value = EjemplosError.EQUIPO_PUT_CODIGO_DUPLICADO),
                             @ExampleObject(name = "EQUIPO_MODIFICACION_SIMULTANEA", summary = "Bloqueo optimista", value = EjemplosError.EQUIPO_MODIFICACION_SIMULTANEA)}))
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<Equipo> update(@Parameter(description = "ID del equipo", example = "1") @PathVariable Long id,
                                          @Valid @RequestBody EquipoRequest request) {
@@ -179,6 +212,7 @@ public class EquipoController {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class),
                     examples = @ExampleObject(name = "EQUIPO_CON_PRESTAMOS", summary = "Tiene préstamos registrados", value = EjemplosError.EQUIPO_CON_PRESTAMOS)))
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@Parameter(description = "ID del equipo", example = "1") @PathVariable Long id) {
         equipoService.eliminar(id);

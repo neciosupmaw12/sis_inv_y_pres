@@ -51,22 +51,42 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         // Documentación de la API (Swagger UI y especificación OpenAPI)
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // Las reglas se evalúan en orden: primero las más específicas.
                         // Gestión de usuarios: solo administrador
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
-                        // Equipos (inventario): lectura para ambos roles, escritura solo administrador
+                        // Perfil del alumno (su correo y teléfono): solo ALUMNO
+                        .requestMatchers("/api/perfil", "/api/perfil/**").hasRole("ALUMNO")
+                        // Equipos: el alumno solo ve los prestables (catálogo); el inventario completo lo ven
+                        // ADMIN y ENCARGADO; registrar, editar y eliminar, solo ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/equipos/disponibles", "/api/equipos/catalogo")
+                                .hasAnyRole("ADMIN", "ENCARGADO", "ALUMNO")
                         .requestMatchers(HttpMethod.GET, "/api/equipos/**").hasAnyRole("ADMIN", "ENCARGADO")
                         .requestMatchers("/api/equipos/**").hasRole("ADMIN")
                         // Solicitantes: el encargado registra y edita; solo el administrador elimina
                         .requestMatchers(HttpMethod.DELETE, "/api/solicitantes/**").hasRole("ADMIN")
                         .requestMatchers("/api/solicitantes/**").hasAnyRole("ADMIN", "ENCARGADO")
-                        // Préstamos: el encargado consulta, registra y recibe devoluciones;
-                        // editar y anular solo administrador
+                        // Préstamos del ALUMNO: solicitar, ver los suyos y cancelar sus pendientes
+                        .requestMatchers(HttpMethod.POST, "/api/prestamos/solicitudes").hasRole("ALUMNO")
+                        .requestMatchers(HttpMethod.GET, "/api/prestamos/mis-prestamos", "/api/prestamos/mis-prestamos/**")
+                                .hasRole("ALUMNO")
+                        .requestMatchers(HttpMethod.PUT, "/api/prestamos/*/cancelar").hasRole("ALUMNO")
+                        // Ver un préstamo por id: el servicio responde 403 si un alumno pide uno ajeno
+                        .requestMatchers(HttpMethod.GET, "/api/prestamos/{id:\\d+}")
+                                .hasAnyRole("ADMIN", "ENCARGADO", "ALUMNO")
+                        // Aprobar y rechazar solicitudes: solo administrador
+                        .requestMatchers(HttpMethod.PUT, "/api/prestamos/*/aprobar", "/api/prestamos/*/rechazar")
+                                .hasRole("ADMIN")
+                        // El encargado consulta, registra préstamos directos y recibe devoluciones;
+                        // editar y anular, solo administrador
                         .requestMatchers(HttpMethod.PUT, "/api/prestamos/*/devolucion").hasAnyRole("ADMIN", "ENCARGADO")
                         .requestMatchers(HttpMethod.PUT, "/api/prestamos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/prestamos/**").hasRole("ADMIN")
                         .requestMatchers("/api/prestamos/**").hasAnyRole("ADMIN", "ENCARGADO")
-                        // Panel de inicio: ambos roles
+                        // Panel de inicio con datos globales: ADMIN y ENCARGADO (el alumno usa mis-prestamos/resumen)
                         .requestMatchers(HttpMethod.GET, "/api/panel/**").hasAnyRole("ADMIN", "ENCARGADO")
+                        // Cualquier otra ruta de la API (incluidas las que se agreguen en el futuro) es solo para el
+                        // personal: el ALUMNO nunca entra por descuido a algo que no se le permitió arriba
+                        .requestMatchers("/api/**").hasAnyRole("ADMIN", "ENCARGADO")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> {

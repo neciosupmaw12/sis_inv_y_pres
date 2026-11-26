@@ -21,6 +21,7 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -32,6 +33,7 @@ import java.util.List;
 @RestController
 @RequestMapping(path = "/api/solicitantes", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADO')")
 public class SolicitanteController {
 
     private final SolicitanteService solicitanteService;
@@ -137,6 +139,7 @@ public class SolicitanteController {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class),
                     examples = @ExampleObject(name = "SOLICITANTE_CON_PRESTAMOS", summary = "Tiene préstamos registrados", value = EjemplosError.SOLICITANTE_CON_PRESTAMOS)))
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@Parameter(description = "ID del solicitante", example = "1") @PathVariable Long id) {
         solicitanteService.eliminar(id);

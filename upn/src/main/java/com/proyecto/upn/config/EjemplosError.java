@@ -105,7 +105,7 @@ public final class EjemplosError {
               "timestamp": "2026-11-25T09:45:18",
               "status": 400,
               "error": "Bad Request",
-              "mensaje": "Estado no válido: 'XX'. Use ACTIVO, VENCIDO o DEVUELTO",
+              "mensaje": "Estado no válido: 'XX'. Use PENDIENTE, ACTIVO, VENCIDO, DEVUELTO, RECHAZADO o CANCELADO",
               "ruta": "/api/prestamos/paginado",
               "errores": null
             }
@@ -636,6 +636,416 @@ public final class EjemplosError {
               "error": "Conflict",
               "mensaje": "El usuario admin ya existe",
               "ruta": "/api/usuarios",
+              "errores": null
+            }
+            """;
+
+    // =====================================================================================================
+    // Rol ALUMNO y flujo de aprobación. Los 403 que responde SecurityConfig (regla por URL) no traen
+    // "errores"; los que lanza el servicio o @PreAuthorize pasan por GlobalExceptionHandler y sí lo traen.
+    // =====================================================================================================
+
+    // ---------- Alta de usuarios ALUMNO (POST /api/usuarios)
+
+    public static final String USUARIO_ALUMNO_SIN_DATOS = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Los datos enviados no son válidos",
+              "ruta": "/api/usuarios",
+              "errores": {
+                "alumno": "Los datos del estudiante son obligatorios para el rol ALUMNO"
+              }
+            }
+            """;
+
+    public static final String USUARIO_ALUMNO_DATOS_INVALIDOS = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Los datos enviados no son válidos",
+              "ruta": "/api/usuarios",
+              "errores": {
+                "alumno.dni": "El DNI debe tener exactamente 8 dígitos",
+                "alumno.email": "El correo no tiene un formato válido"
+              }
+            }
+            """;
+
+    public static final String USUARIO_ALUMNO_YA_VINCULADO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 409,
+              "error": "Conflict",
+              "mensaje": "El estudiante con DNI 71234567 ya tiene el usuario 'alumno'",
+              "ruta": "/api/usuarios",
+              "errores": null
+            }
+            """;
+
+    public static final String USUARIO_ALUMNO_DNI_NO_ESTUDIANTE = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 409,
+              "error": "Conflict",
+              "mensaje": "El DNI 45678912 pertenece a un solicitante DOCENTE; solo se puede vincular un ESTUDIANTE",
+              "ruta": "/api/usuarios",
+              "errores": null
+            }
+            """;
+
+    public static final String USUARIO_ALUMNO_EMAIL_DUPLICADO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 409,
+              "error": "Conflict",
+              "mensaje": "Ya existe un solicitante con el email maria.quispe@upn.pe",
+              "ruta": "/api/usuarios",
+              "errores": null
+            }
+            """;
+
+    // ---------- Catálogo (GET /api/equipos/catalogo)
+
+    public static final String CATALOGO_SIZE_INVALIDO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Parámetros no válidos",
+              "ruta": "/api/equipos/catalogo",
+              "errores": {
+                "size": "size no puede ser mayor a 50"
+              }
+            }
+            """;
+
+    // ---------- Préstamos: listados
+
+    public static final String PRESTAMOS_ALUMNO_SIN_PERMISO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/prestamos/paginado"
+            }
+            """;
+
+    public static final String MIS_PRESTAMOS_ESTADO_INVALIDO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Estado no válido: 'XX'. Use PENDIENTE, ACTIVO, VENCIDO, DEVUELTO, RECHAZADO o CANCELADO",
+              "ruta": "/api/prestamos/mis-prestamos",
+              "errores": null
+            }
+            """;
+
+    public static final String MIS_PRESTAMOS_SIN_PERMISO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/prestamos/mis-prestamos"
+            }
+            """;
+
+    public static final String PRESTAMO_AJENO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/prestamos/2",
+              "errores": null
+            }
+            """;
+
+    // ---------- Solicitud del alumno (POST /api/prestamos/solicitudes)
+
+    public static final String SOLICITUD_DATOS_INVALIDOS = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Los datos enviados no son válidos",
+              "ruta": "/api/prestamos/solicitudes",
+              "errores": {
+                "motivo": "El motivo es obligatorio",
+                "detalles[0].cantidad": "Puede pedir como máximo 3 unidades de cada equipo"
+              }
+            }
+            """;
+
+    public static final String SOLICITUD_EXCEDE_TOTAL = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Una solicitud puede incluir como máximo 5 unidades en total (pidió 6)",
+              "ruta": "/api/prestamos/solicitudes",
+              "errores": null
+            }
+            """;
+
+    public static final String SOLICITUD_MAX_PENDIENTES = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Ya tiene 3 solicitudes pendientes (máximo 3); espere a que se atiendan o cancele alguna",
+              "ruta": "/api/prestamos/solicitudes",
+              "errores": null
+            }
+            """;
+
+    public static final String SOLICITUD_EQUIPO_NO_OPERATIVO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "El equipo 'Tablet Samsung Galaxy Tab' no está operativo (EN_MANTENIMIENTO)",
+              "ruta": "/api/prestamos/solicitudes",
+              "errores": null
+            }
+            """;
+
+    public static final String SOLICITUD_CON_VENCIDOS = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "El solicitante tiene préstamos vencidos (#4); debe devolverlos antes de un nuevo préstamo",
+              "ruta": "/api/prestamos/solicitudes",
+              "errores": null
+            }
+            """;
+
+    public static final String SOLICITUD_SIN_PERMISO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/prestamos/solicitudes"
+            }
+            """;
+
+    public static final String SOLICITUD_EQUIPO_NO_ENCONTRADO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 404,
+              "error": "Not Found",
+              "mensaje": "Equipo con id 999 no encontrado",
+              "ruta": "/api/prestamos/solicitudes",
+              "errores": null
+            }
+            """;
+
+    // ---------- Cancelar (PUT /api/prestamos/{id}/cancelar)
+
+    public static final String CANCELAR_NO_PENDIENTE = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Solo se pueden cancelar solicitudes PENDIENTES; la #7 está ACTIVO",
+              "ruta": "/api/prestamos/7/cancelar",
+              "errores": null
+            }
+            """;
+
+    public static final String CANCELAR_AJENA = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/prestamos/2/cancelar",
+              "errores": null
+            }
+            """;
+
+    public static final String CANCELAR_NO_ENCONTRADA = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 404,
+              "error": "Not Found",
+              "mensaje": "Préstamo con id 999 no encontrado",
+              "ruta": "/api/prestamos/999/cancelar",
+              "errores": null
+            }
+            """;
+
+    // ---------- Aprobar (PUT /api/prestamos/{id}/aprobar)
+
+    public static final String APROBAR_NO_PENDIENTE = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Solo se pueden aprobar solicitudes PENDIENTES; la #7 está ACTIVO",
+              "ruta": "/api/prestamos/7/aprobar",
+              "errores": null
+            }
+            """;
+
+    public static final String APROBAR_FECHA_VENCIDA = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "La fecha de devolución prevista (25/11/2026) ya pasó; rechace la solicitud",
+              "ruta": "/api/prestamos/7/aprobar",
+              "errores": null
+            }
+            """;
+
+    public static final String APROBAR_SIN_PERMISO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/prestamos/7/aprobar"
+            }
+            """;
+
+    public static final String APROBAR_NO_ENCONTRADA = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 404,
+              "error": "Not Found",
+              "mensaje": "Préstamo con id 999 no encontrado",
+              "ruta": "/api/prestamos/999/aprobar",
+              "errores": null
+            }
+            """;
+
+    public static final String APROBAR_STOCK_INSUFICIENTE = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 409,
+              "error": "Conflict",
+              "mensaje": "No hay unidades suficientes de 'Proyector multimedia Epson' (PRY-001). Disponibles: 1, solicitadas: 2. No se aprobó la solicitud.",
+              "ruta": "/api/prestamos/7/aprobar",
+              "errores": {
+                "equipoId": "3",
+                "codigo": "PRY-001",
+                "disponibles": "1",
+                "solicitadas": "2"
+              }
+            }
+            """;
+
+    public static final String APROBAR_MODIFICACION_SIMULTANEA = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 409,
+              "error": "Conflict",
+              "mensaje": "Otro usuario modificó el mismo equipo al mismo tiempo. No se guardó ningún cambio; vuelva a intentarlo.",
+              "ruta": "/api/prestamos/7/aprobar",
+              "errores": null
+            }
+            """;
+
+    // ---------- Rechazar (PUT /api/prestamos/{id}/rechazar)
+
+    public static final String RECHAZO_SIN_MOTIVO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Los datos enviados no son válidos",
+              "ruta": "/api/prestamos/7/rechazar",
+              "errores": {
+                "motivo": "El motivo del rechazo es obligatorio"
+              }
+            }
+            """;
+
+    public static final String RECHAZAR_NO_PENDIENTE = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Solo se pueden rechazar solicitudes PENDIENTES; la #7 está RECHAZADO",
+              "ruta": "/api/prestamos/7/rechazar",
+              "errores": null
+            }
+            """;
+
+    public static final String RECHAZAR_SIN_PERMISO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/prestamos/7/rechazar"
+            }
+            """;
+
+    public static final String RECHAZAR_NO_ENCONTRADA = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 404,
+              "error": "Not Found",
+              "mensaje": "Préstamo con id 999 no encontrado",
+              "ruta": "/api/prestamos/999/rechazar",
+              "errores": null
+            }
+            """;
+
+    // ---------- Devolución de algo que no es un préstamo activo
+
+    public static final String DEVOLUCION_NO_ACTIVO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Solo se pueden devolver préstamos activos; el #7 está PENDIENTE",
+              "ruta": "/api/prestamos/7/devolucion",
+              "errores": null
+            }
+            """;
+
+    // ---------- Perfil del alumno (/api/perfil)
+
+    public static final String PERFIL_SIN_PERMISO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 403,
+              "error": "Forbidden",
+              "mensaje": "No tiene permisos para realizar esta operación",
+              "ruta": "/api/perfil"
+            }
+            """;
+
+    public static final String PERFIL_DATOS_INVALIDOS = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 400,
+              "error": "Bad Request",
+              "mensaje": "Los datos enviados no son válidos",
+              "ruta": "/api/perfil",
+              "errores": {
+                "telefono": "El teléfono debe tener 9 dígitos y empezar con 9"
+              }
+            }
+            """;
+
+    public static final String PERFIL_EMAIL_DUPLICADO = """
+            {
+              "timestamp": "2026-11-26T15:20:41",
+              "status": 409,
+              "error": "Conflict",
+              "mensaje": "Ya existe otro solicitante con el email maria.quispe@upn.pe",
+              "ruta": "/api/perfil",
               "errores": null
             }
             """;

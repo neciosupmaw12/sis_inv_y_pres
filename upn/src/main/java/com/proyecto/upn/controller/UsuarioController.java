@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /** Administración de usuarios del sistema (solo rol ADMIN). */
-@Tag(name = "Usuarios", description = "Gestión de usuarios del sistema (solo ADMIN)")
+@Tag(name = "Usuarios", description = "Gestión de usuarios del sistema: ADMIN, ENCARGADO y ALUMNO (solo ADMIN)")
 @RestController
 @RequestMapping(path = "/api/usuarios", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
@@ -44,16 +44,27 @@ public class UsuarioController {
         return ResponseEntity.ok(authService.listar());
     }
 
-    @Operation(summary = "Crear un usuario")
+    @Operation(summary = "Crear un usuario",
+            description = "Para rol ALUMNO envíe además 'alumno' con los datos del estudiante: si ya existe un "
+                    + "solicitante ESTUDIANTE con ese DNI se vincula (sin duplicarlo); si no, se crea. Estudiante y "
+                    + "usuario se guardan en UNA transacción: ante cualquier 409 no se guarda ninguno de los dos.")
     @ApiResponse(responseCode = "201", description = "Usuario creado")
     @ApiResponse(responseCode = "400", description = "Datos inválidos",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class),
-                    examples = @ExampleObject(name = "USUARIO_DATOS_INVALIDOS", summary = "Campos inválidos", value = EjemplosError.USUARIO_DATOS_INVALIDOS)))
-    @ApiResponse(responseCode = "409", description = "El nombre de usuario ya existe",
+                    examples = {
+                            @ExampleObject(name = "USUARIO_DATOS_INVALIDOS", summary = "Campos inválidos", value = EjemplosError.USUARIO_DATOS_INVALIDOS),
+                            @ExampleObject(name = "USUARIO_ALUMNO_SIN_DATOS", summary = "ALUMNO sin datos del estudiante", value = EjemplosError.USUARIO_ALUMNO_SIN_DATOS),
+                            @ExampleObject(name = "USUARIO_ALUMNO_DATOS_INVALIDOS", summary = "Datos del estudiante inválidos", value = EjemplosError.USUARIO_ALUMNO_DATOS_INVALIDOS)}))
+    @ApiResponse(responseCode = "409", description = "Usuario duplicado, estudiante ya vinculado, DNI que no es de un "
+            + "estudiante o correo duplicado (rollback: no se guarda nada)",
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                     schema = @Schema(implementation = ErrorResponse.class),
-                    examples = @ExampleObject(name = "USUARIO_DUPLICADO", summary = "Usuario duplicado", value = EjemplosError.USUARIO_DUPLICADO)))
+                    examples = {
+                            @ExampleObject(name = "USUARIO_DUPLICADO", summary = "Usuario duplicado", value = EjemplosError.USUARIO_DUPLICADO),
+                            @ExampleObject(name = "USUARIO_ALUMNO_YA_VINCULADO", summary = "El estudiante ya tiene usuario", value = EjemplosError.USUARIO_ALUMNO_YA_VINCULADO),
+                            @ExampleObject(name = "USUARIO_ALUMNO_DNI_NO_ESTUDIANTE", summary = "DNI de un docente", value = EjemplosError.USUARIO_ALUMNO_DNI_NO_ESTUDIANTE),
+                            @ExampleObject(name = "USUARIO_ALUMNO_EMAIL_DUPLICADO", summary = "Correo de otro solicitante", value = EjemplosError.USUARIO_ALUMNO_EMAIL_DUPLICADO)}))
     @PostMapping
     public ResponseEntity<UsuarioResponse> create(@Valid @RequestBody RegistroRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registrar(request));
